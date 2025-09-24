@@ -3,9 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import {
-  addMonths,
-  eachDayOfInterval,
-  endOfMonth,
+  
   format,
   isBefore,
   startOfDay,
@@ -61,6 +59,7 @@ import {
   Users,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
+import type { Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -264,10 +263,10 @@ const contactSchema = z.object({
 });
 
 const customSchema = z.object({
-  guestCount: z
-    .string()
-    .transform((value) => Number(value))
-    .pipe(z.number().min(10, "Minimum 10 guests").max(120, "Tiny Diner max 120")),
+  guestCount: z.preprocess((val) => {
+    if (typeof val === "string") return Number(val);
+    return val;
+  }, z.number().min(10, "Minimum 10 guests").max(120, "Tiny Diner max 120")),
   foodStyle: z.enum(["buffet", "plated", "appetizers"]),
   beverage: z.enum(["wine", "cocktails", "na"]),
   cake: z.enum(["need", "bring"]),
@@ -326,7 +325,7 @@ export default function TinyDinerApp() {
   });
 
   const customForm = useForm<z.infer<typeof customSchema>>({
-    resolver: zodResolver(customSchema),
+    resolver: zodResolver(customSchema) as unknown as Resolver<z.infer<typeof customSchema>>,
     defaultValues: {
       guestCount: initialCustomSelections.guestCount,
       foodStyle: initialCustomSelections.foodStyle,
@@ -343,15 +342,13 @@ export default function TinyDinerApp() {
     return Math.round(STREAMLINED_PACKAGE.price * STREAMLINED_PACKAGE.depositRate);
   }, []);
 
-  const calendarDisabledDays: ((date: Date) => boolean) | { before: Date }[] = useMemo(() => [
-    {
-      before: startOfToday(),
-    },
-    (date: Date) => {
+  const calendarDisabledDays = useMemo<(date: Date) => boolean>(() => {
+    return (date: Date) => {
+      if (isBefore(date, startOfToday())) return true;
       const status = getAvailabilityStatus(date);
       return status !== "available";
-    },
-  ], []);
+    };
+  }, []);
 
   const holdDates = useMemo(
     () => Array.from(holdDateSet).map((iso) => new Date(`${iso}T00:00:00`)),
@@ -1029,12 +1026,13 @@ function ReviewDashboard({
 }) {
   const [draftMessage, setDraftMessage] = useState("");
 
-  const summaryItems = booking.planType === "streamlined"
-    ? STREAMLINED_PACKAGE.inclusions.map((item) => ({ label: item }))
-    : booking.customEstimate?.lineItems.map((item) => ({
-        label: item.label,
-        amount: item.amount,
-      })) ?? [];
+  const summaryItems: { label: string; amount?: number }[] =
+    booking.planType === "streamlined"
+      ? STREAMLINED_PACKAGE.inclusions.map((item) => ({ label: item }))
+      : booking.customEstimate?.lineItems.map((item) => ({
+          label: item.label,
+          amount: item.amount,
+        })) ?? [];
 
   return (
     <Card className="border border-slate-200/80 bg-white/80 shadow-xl shadow-slate-200/70">
@@ -1497,16 +1495,7 @@ function getAvailabilityStatus(date: Date): AvailabilityStatus {
   return "available";
 }
 
-function buildAvailabilityMap() {
-  const start = startOfToday();
-  const end = endOfMonth(addMonths(start, 5));
-  const days = eachDayOfInterval({ start, end });
-  const map = new Map<string, AvailabilityStatus>();
-  days.forEach((date) => {
-    map.set(format(date, "yyyy-MM-dd"), getAvailabilityStatus(date));
-  });
-  return map;
-}
+// buildAvailabilityMap removed — not needed in the current flow
 
 
 
