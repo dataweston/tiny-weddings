@@ -36,3 +36,4 @@ The host app embeds the tool via `<iframe>` and defaults to `http://localhost:54
 
 Any standard Next.js workflow (Vercel, Netlify, SSR). Expose the app URL via `VITE_TINY_DINER_URL` in the host app so partners can access it from `/partners/tiny-diner`.
 # tiny-diner-weddings
+# tiny-wedding
