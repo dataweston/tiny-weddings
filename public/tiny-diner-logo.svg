@@ -1,0 +1,18 @@
+﻿<svg width="320" height="140" viewBox="0 0 320 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .word {
+      font-family: "Great Vibes", "Pacifico", "Segoe Script", "Brush Script MT", cursive;
+      fill: #111827;
+    }
+    .tiny {
+      font-size: 54px;
+      letter-spacing: 1px;
+    }
+    .diner {
+      font-size: 88px;
+    }
+  </style>
+  <text class="word tiny" x="12" y="58">Tiny</text>
+  <text class="word diner" x="40" y="120">Diner</text>
+  <path d="M18 126C74 102 144 96 214 110C244 116 274 126 302 138" stroke="#111827" stroke-width="6" stroke-linecap="round" fill="none"/>
+</svg>
