@@ -518,56 +518,58 @@ export default function TinyDinerApp() {
     <div className="min-h-screen bg-gradient-to-br from-[#f6f4f1] via-white to-[#f5fbff] text-slate-900">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 pb-16 pt-10">
         <HeaderSection booking={booking} />
-        <div className="grid gap-8 lg:grid-cols-[400px_1fr]">
-          <Card className="h-fit border-none bg-white/80 shadow-lg shadow-slate-200/60">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
-                <CalendarDays className="h-6 w-6 text-rose-500" /> Availability
-              </CardTitle>
-              <CardDescription>
-                Choose your ideal date. Holds and booked dates are shown in color.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <div className="flex flex-col gap-8">
+          {step === "calendar" && (
+            <Card className="h-fit border-none bg-white/80 shadow-lg shadow-slate-200/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
+                  <CalendarDays className="h-6 w-6 text-rose-500" /> Availability
+                </CardTitle>
+                <CardDescription>
+                  Choose your ideal date. Holds and booked dates are shown in color.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <Calendar
-                mode="single"
-                selected={booking.eventDate ?? undefined}
-                onSelect={handleDateSelect}
-                numberOfMonths={2}
-                className="rounded-md border bg-white"
+                  mode="single"
+                  selected={booking.eventDate ?? undefined}
+                  onSelect={handleDateSelect}
+                  numberOfMonths={2}
+                  className="rounded-md border bg-white"
                   disabled={calendarDisabledDays}
-                modifiers={{
-                  hold: holdDates,
-                  booked: bookedDates,
-                }}
-                modifiersClassNames={{
-                  hold: "bg-amber-200 text-amber-900 hover:bg-amber-200",
-                  booked: "bg-rose-200 text-rose-900 opacity-70",
-                }}
-              />
-              <Legend />
-              <Alert variant="default" className="bg-sky-50">
-                <ShieldCheck className="h-5 w-5 text-sky-600" />
-                <AlertTitle>Reservable within 24 hours</AlertTitle>
-                <AlertDescription>
-                  Once you pick a date, complete the intake to place a deposit and auto-sync your booking to HoneyBook.
-                </AlertDescription>
-              </Alert>
-              {booking.eventDate && (
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    Selected date
-                  </p>
-                  <p className="text-lg font-medium text-slate-900">
-                    {format(booking.eventDate, "EEEE, MMMM d, yyyy")}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  modifiers={{
+                    hold: holdDates,
+                    booked: bookedDates,
+                  }}
+                  modifiersClassNames={{
+                    hold: "bg-amber-200 text-amber-900 hover:bg-amber-200",
+                    booked: "bg-rose-200 text-rose-900 opacity-70",
+                  }}
+                />
+                <Legend />
+                <Alert variant="default" className="bg-sky-50">
+                  <ShieldCheck className="h-5 w-5 text-sky-600" />
+                  <AlertTitle>Reservable within 24 hours</AlertTitle>
+                  <AlertDescription>
+                    Once you pick a date, complete the intake to place a deposit and auto-sync your booking to HoneyBook.
+                  </AlertDescription>
+                </Alert>
+                {booking.eventDate && (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                      Selected date
+                    </p>
+                    <p className="text-lg font-medium text-slate-900">
+                      {format(booking.eventDate, "EEEE, MMMM d, yyyy")}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-          <div className="space-y-8">
-            <StepIndicator currentStep={step} planType={booking.planType} />
+          <div className="space-y-4">
+            <StepIndicator currentStep={step} planType={booking.planType} setStep={setStep} />
 
             {step === "calendar" && (
               <Card className="border-dashed border-slate-200 bg-white/60">
@@ -891,13 +893,14 @@ function HeaderSection({ booking }: { booking: BookingState }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <span className="flex h-20 w-36 items-center justify-center rounded-xl border border-rose-100 bg-white/80 p-2 shadow-sm">
-            <Image src="/tiny-diner-logo.svg" alt="Tiny Diner logo" width={208} height={96} priority />
+            <Image src="/tiny-diner-logo-2.png" alt="Tiny Diner logo" width={208} height={96} priority />
           </span>
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Tiny Diner</p>
             <h1 className="text-3xl font-semibold text-slate-900 md:text-4xl">
               Wedding Onboarding & Booking Portal
             </h1>
+            <p className="mt-1 text-sm text-slate-500">{(booking.eventDate ? format(booking.eventDate, "MMM d, yyyy") : "No date selected")}</p>
           </div>
         </div>
         <Badge className={cn(
@@ -914,47 +917,70 @@ function HeaderSection({ booking }: { booking: BookingState }) {
   );
 }
 
-function StepIndicator({ currentStep, planType }: { currentStep: Step; planType: PlanType }) {
-  const steps: { id: Step; label: string }[] = [
-    { id: "calendar", label: "Select date" },
-    { id: "contact", label: "Client info" },
-    { id: "plan", label: "Choose path" },
-    { id: "custom", label: "Customize" },
-    { id: "review", label: "Dashboard" },
+function StepIndicator({ currentStep, setStep }: { currentStep: Step; setStep: (s: Step) => void }) {
+  const steps: { id: Step; label: string; description?: string }[] = [
+    { id: "calendar", label: "Select date", description: "Pick your wedding date" },
+    { id: "contact", label: "Client info", description: "Tell us about the couple" },
+    { id: "plan", label: "Choose path", description: "Pick a package or build custom" },
+    { id: "custom", label: "Customize", description: "Customize food, drinks & extras" },
+    { id: "review", label: "Dashboard", description: "Review, sync, and pay deposit" },
   ];
 
-  return (
-    <div className="flex flex-wrap items-center gap-3 text-sm">
-      {steps.map((step, index) => {
-        const isActive = currentStep === step.id || (currentStep === "review" && step.id === "custom" && planType === "streamlined");
-        const isComplete = steps.findIndex((s) => s.id === currentStep) > index && !(step.id === "custom" && planType === "streamlined");
-        const displayBadge = step.id === "custom" && planType === "streamlined";
+  const activeIndex = steps.findIndex((s) => s.id === currentStep);
 
-        return (
-          <div className="flex items-center gap-3" key={step.id}>
-            <div
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-full border text-xs font-semibold",
-                isComplete && "border-emerald-500 bg-emerald-500 text-white",
-                isActive && !isComplete && "border-rose-500 bg-rose-500 text-white",
-                !isActive && !isComplete && "border-slate-200 bg-white text-slate-500"
-              )}
-            >
-              {displayBadge ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+  return (
+    <div className="flex gap-6">
+      <ol className="flex w-56 flex-col gap-3">
+        {steps.map((s, i) => {
+          const isActive = i === activeIndex;
+          const isComplete = i < activeIndex;
+          return (
+            <li key={s.id} className={cn("flex items-start gap-3 rounded p-3", isActive ? "bg-rose-50 border border-rose-100" : isComplete ? "bg-emerald-50 border border-emerald-100" : "bg-white/0 border border-transparent")}>
+              <div className={cn("flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold", isComplete ? "bg-emerald-500 text-white" : isActive ? "bg-rose-500 text-white" : "border border-slate-200 text-slate-600")}>{isComplete ? <CheckCircle2 className="h-4 w-4" /> : i + 1}</div>
+              <div className="min-w-0">
+                <div className={cn("text-sm font-semibold", isActive ? "text-rose-600" : isComplete ? "text-emerald-700" : "text-slate-700")}>
+                  {s.label}
+                </div>
+                <div className="text-xs text-slate-500 truncate">{s.description}</div>
+                <div className="mt-2">
+                  <Button size="sm" variant={isActive ? "default" : "ghost"} onClick={() => setStep(s.id)}>{isActive ? "Current" : "Go"}</Button>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="flex-1">
+        <Dialog>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-xl">{steps[activeIndex]?.label}</DialogTitle>
+              <div className="text-sm text-slate-600">{steps[activeIndex]?.description}</div>
+            </DialogHeader>
+
+            <div className="mt-4">
+              <p className="text-sm text-slate-700">Follow the step to complete this part of onboarding. Use the buttons below to navigate.</p>
             </div>
-            <span
-              className={cn(
-                "text-xs uppercase tracking-[0.18em] text-slate-500",
-                isActive && "text-rose-600",
-                isComplete && "text-emerald-600"
-              )}
-            >
-              {step.label}
-            </span>
-            {index < steps.length - 1 && <span className="text-slate-200">/</span>}
-          </div>
-        );
-      })}
+
+            <div className="mt-6 flex justify-between">
+              <div>
+                {activeIndex > 0 && (
+                  <Button variant="outline" onClick={() => setStep(steps[activeIndex - 1].id)}>Back</Button>
+                )}
+              </div>
+              <div className="flex gap-3">
+                {activeIndex < steps.length - 1 && (
+                  <Button onClick={() => setStep(steps[activeIndex + 1].id)}>Next</Button>
+                )}
+                {activeIndex === steps.length - 1 && (
+                  <Button className="bg-emerald-600 text-white">Finish</Button>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
