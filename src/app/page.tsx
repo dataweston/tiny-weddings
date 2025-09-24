@@ -309,7 +309,7 @@ export default function TinyDinerApp() {
     {
       id: "welcome-note",
       sender: "Tiny Diner",
-      body: "We're so glad you're here. Once you enter your details, our team will confirm availability, push everything to HoneyBook, and keep you in the loop inside this shared dashboard.",
+  body: "We&apos;re so glad you&apos;re here. Once you enter your details, our team will confirm availability, push everything to HoneyBook, and keep you in the loop inside this shared dashboard.",
       timestamp: new Date(),
     },
   ]);
@@ -343,7 +343,7 @@ export default function TinyDinerApp() {
     return Math.round(STREAMLINED_PACKAGE.price * STREAMLINED_PACKAGE.depositRate);
   }, []);
 
-  const calendarDisabledDays = useMemo(() => [
+  const calendarDisabledDays: ((date: Date) => boolean) | { before: Date }[] = useMemo(() => [
     {
       before: startOfToday(),
     },
@@ -464,7 +464,7 @@ export default function TinyDinerApp() {
       {
         id: `auto-${Date.now()}`,
         sender: "Tiny Diner",
-        body: "Thanks! A coordinator will reply shortly and we'll log this thread inside HoneyBook as well.",
+  body: "Thanks! A coordinator will reply shortly and we&apos;ll log this thread inside HoneyBook as well.",
         timestamp: new Date(),
       },
     ]);
@@ -532,13 +532,13 @@ export default function TinyDinerApp() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Calendar
+                <Calendar
                 mode="single"
                 selected={booking.eventDate ?? undefined}
                 onSelect={handleDateSelect}
                 numberOfMonths={2}
                 className="rounded-md border bg-white"
-                disabled={calendarDisabledDays as any}
+                  disabled={calendarDisabledDays}
                 modifiers={{
                   hold: holdDates,
                   booked: bookedDates,
@@ -576,7 +576,7 @@ export default function TinyDinerApp() {
               <Card className="border-dashed border-slate-200 bg-white/60">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <Sparkles className="h-5 w-5 text-rose-500" /> Let's begin with your date
+                    <Sparkles className="h-5 w-5 text-rose-500" /> Let&apos;s begin with your date
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -593,7 +593,7 @@ export default function TinyDinerApp() {
                     <Users className="h-5 w-5 text-sky-500" /> Tell us about the couple
                   </CardTitle>
                   <CardDescription>
-                    We'll link these details with your HoneyBook profile and coordinator workspace.
+                    We&apos;ll link these details with your HoneyBook profile and coordinator workspace.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -703,7 +703,7 @@ export default function TinyDinerApp() {
                   <CardHeader>
                     <CardTitle className="text-xl">Custom build-out</CardTitle>
                     <CardDescription>
-                      Design your celebration with mix-and-match services. We'll prepare a bespoke estimate and coordinator brief.
+                      Design your celebration with mix-and-match services. We&apos;ll prepare a bespoke estimate and coordinator brief.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -726,7 +726,7 @@ export default function TinyDinerApp() {
                 <CardHeader>
                   <CardTitle className="text-2xl">Customize your celebration</CardTitle>
                   <CardDescription>
-                    We'll translate these answers into a working estimate and HoneyBook project board.
+                    We&apos;ll translate these answers into a working estimate and HoneyBook project board.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -791,7 +791,7 @@ export default function TinyDinerApp() {
                               <FormLabel>Cake or dessert</FormLabel>
                               <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
                                 <OptionCard value="need" title="We need Tiny Diner to provide" subtitle="Layered buttercream cakes & dessert table" />
-                                <OptionCard value="bring" title="We'll bring our own" subtitle="Storage & service support included" />
+                                <OptionCard value="bring" title="We&apos;ll bring our own" subtitle="Storage & service support included" />
                               </RadioGroup>
                               <FormMessage />
                             </FormItem>
@@ -806,7 +806,7 @@ export default function TinyDinerApp() {
                               <FormLabel>Floral & decor</FormLabel>
                               <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
                                 <OptionCard value="inHouse" title="Curated by Tiny Diner" subtitle="Partner florists with signature palette" />
-                                <OptionCard value="bring" title="We'll collaborate with our florist" subtitle="Space walk-through included" />
+                                <OptionCard value="bring" title="We&apos;ll collaborate with our florist" subtitle="Space walk-through included" />
                               </RadioGroup>
                               <FormMessage />
                             </FormItem>
@@ -824,7 +824,7 @@ export default function TinyDinerApp() {
                               <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
                                 <OptionCard value="fullPlanning" title="Planning in advance" subtitle="12-week planning partnership" />
                                 <OptionCard value="dayOf" title="Day-of lead" subtitle="Timeline, vendors, and onsite management" />
-                                <OptionCard value="none" title="We have our own" subtitle="We'll still provide Tiny Diner host" />
+                                <OptionCard value="none" title="We have our own" subtitle="We&apos;ll still provide Tiny Diner host" />
                               </RadioGroup>
                               <FormMessage />
                             </FormItem>
@@ -839,7 +839,7 @@ export default function TinyDinerApp() {
                               <FormLabel>Officiant</FormLabel>
                               <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
                                 <OptionCard value="provide" title="Tiny Diner officiant" subtitle="Inclusive ceremony scripts + rehearsal" />
-                                <OptionCard value="bring" title="We'll bring our own" subtitle="We'll coordinate timeline + mic" />
+                                <OptionCard value="bring" title="We&apos;ll bring our own" subtitle="We&apos;ll coordinate timeline + mic" />
                               </RadioGroup>
                               <FormMessage />
                             </FormItem>
@@ -1189,7 +1189,7 @@ function ReviewDashboard({
                 <div>
                   <p className="text-sm text-slate-700">
                     {booking.syncedToHoneybook
-                      ? "Synced! We'll keep this dashboard in lockstep with your HoneyBook project."
+                      ? "Synced! We&apos;ll keep this dashboard in lockstep with your HoneyBook project."
                       : "One click creates or updates the HoneyBook project with this intake, timeline, and message history."}
                   </p>
                 </div>
@@ -1212,7 +1212,7 @@ function ReviewDashboard({
                   <MessageCircle className="h-5 w-5 text-rose-500" /> Shared message log
                 </CardTitle>
                 <CardDescription>
-                  Notes stay in sync for you, your partner, and your coordinator. We'll push everything to HoneyBook too.
+                  Notes stay in sync for you, your partner, and your coordinator. We&apos;ll push everything to HoneyBook too.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1320,7 +1320,7 @@ function VendorSection({
                     <DialogTitle>Message {vendor.name}</DialogTitle>
                   </DialogHeader>
                   <p className="text-sm text-slate-600">
-                    Compose a note to {vendor.name}. We'll relay through HoneyBook while keeping this thread updated.
+                    Compose a note to {vendor.name}. We&apos;ll relay through HoneyBook while keeping this thread updated.
                   </p>
                   <Textarea rows={5} placeholder={`Write a message to ${vendor.name}`} />
                   <Button>Send via Tiny Diner concierge</Button>
