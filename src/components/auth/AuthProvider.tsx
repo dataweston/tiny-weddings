@@ -22,6 +22,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const auth = getFirebaseAuth();
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
@@ -32,7 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const googleSignIn = async () => {
     setError(null);
     try {
-      await signInWithPopup(auth, googleProvider);
+  if (!auth || !googleProvider) throw new Error('Auth not initialized');
+  await signInWithPopup(auth, googleProvider);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Authentication failed';
       setError(msg);
@@ -48,7 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } as const;
       window.localStorage.setItem('pendingEmail', email);
       if (displayName) window.localStorage.setItem('pendingDisplayName', displayName);
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+  if (!auth) throw new Error('Auth not initialized');
+  await sendSignInLinkToEmail(auth, email, actionCodeSettings);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to send link';
       setError(msg);
@@ -58,12 +64,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeEmailLink = async (url: string) => {
     setError(null);
     try {
-      if (isSignInWithEmailLink(auth, url)) {
+  if (auth && isSignInWithEmailLink(auth, url)) {
         let email = window.localStorage.getItem('pendingEmail');
         if (!email) {
           email = window.prompt('Confirm your email for sign-in') || '';
         }
-        const result = await signInWithEmailLink(auth, email, url);
+  const result = await signInWithEmailLink(auth, email, url);
         const displayName = window.localStorage.getItem('pendingDisplayName');
         if (displayName && result.user && !result.user.displayName) {
           await updateProfile(result.user, { displayName });
@@ -78,7 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await signOut(auth);
+    if (auth) {
+      await signOut(auth);
+    }
   };
 
   const value: AuthContextValue = { user, loading, error, googleSignIn, emailLinkStart, completeEmailLink, logout };

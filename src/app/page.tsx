@@ -528,6 +528,9 @@ export default function TinyDinerApp() {
     setSaving(true);
     try {
       const db = getFirestoreDb();
+      if (!db) {
+        throw new Error("Firestore not initialized (missing env vars?)");
+      }
       const docRef = await addDoc(collection(db, "estimates"), {
         uid: user.uid,
         createdAt: serverTimestamp(),

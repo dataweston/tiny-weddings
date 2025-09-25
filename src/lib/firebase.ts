@@ -6,12 +6,14 @@ import {
   type FirebaseOptions,
 } from "firebase/app";
 import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 type FirebaseParts = {
   app: FirebaseApp | null;
   auth: Auth | null;
   provider: GoogleAuthProvider | null;
   error: string | null;
+  db?: Firestore | null;
 };
 
 const defaultParts: FirebaseParts = {
@@ -19,6 +21,7 @@ const defaultParts: FirebaseParts = {
   auth: null,
   provider: null,
   error: null,
+  db: null,
 };
 
 declare global {
@@ -66,16 +69,12 @@ const ensureFirebase = (): FirebaseParts => {
     const app = getApps().length > 0
       ? getApp()
       : initializeApp(firebaseConfig as FirebaseOptions);
-    const auth = getAuth(app);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
 
-    const parts: FirebaseParts = {
-      app,
-      auth,
-      provider,
-      error: null,
-    };
+    const parts: FirebaseParts = { app, auth, provider, error: null, db };
 
     globalThis.__tinyFirebaseClient = parts;
     return parts;
@@ -95,3 +94,7 @@ export const firebaseApp = firebase.app;
 export const firebaseAuth = firebase.auth;
 export const googleProvider = firebase.provider;
 export const firebaseConfigError = firebase.error;
+
+export function getFirebaseApp() { return firebaseApp; }
+export function getFirebaseAuth() { return firebaseAuth; }
+export function getFirestoreDb() { return firebase.db ?? null; }
