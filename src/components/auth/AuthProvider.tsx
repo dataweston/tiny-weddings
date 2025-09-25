@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getFirebaseAuth, googleProvider } from '@/lib/firebase';
+import { getFirebaseAuth, getGoogleProvider } from '@/lib/firebase';
 import { User, onAuthStateChanged, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, updateProfile, signOut } from 'firebase/auth';
 
 interface AuthContextValue {
@@ -19,13 +19,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const auth = getFirebaseAuth();
+  const [auth, setAuth] = useState(getFirebaseAuth());
+  const [provider, setProvider] = useState(getGoogleProvider());
+
+  // Retry initialization on client if first attempt (possibly SSR) returned null
+  useEffect(() => {
+    if (!auth || !provider) {
+      const id = setInterval(() => {
+        const a = getFirebaseAuth();
+        const p = getGoogleProvider();
+        if (a && p) {
+          setAuth(a);
+          setProvider(p);
+          clearInterval(id);
+        }
+      }, 400);
+      return () => clearInterval(id);
+    }
+  }, [auth, provider]);
 
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
+    if (!auth) return;
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
@@ -36,8 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const googleSignIn = async () => {
     setError(null);
     try {
-  if (!auth || !googleProvider) throw new Error('Auth not initialized');
-  await signInWithPopup(auth, googleProvider);
+  if (!auth || !provider) throw new Error('Auth not initialized');
+  await signInWithPopup(auth, provider);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Authentication failed';
       setError(msg);
