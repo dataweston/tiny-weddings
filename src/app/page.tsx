@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   
   format,
@@ -59,7 +59,6 @@ import {
   Users,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
-import type { Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -78,6 +77,10 @@ const STREAMLINED_PACKAGE = {
   price: 4000,
   depositRate: 0.25,
 };
+
+const STREAMLINED_DEPOSIT = Math.round(
+  STREAMLINED_PACKAGE.price * STREAMLINED_PACKAGE.depositRate
+);
 
 const BASE_PRICING = {
   venueFee: 2600,
@@ -190,7 +193,7 @@ const PREFERRED_VENDORS = [
   },
 ];
 
-const allowedEventWeekdays = new Set([4, 5, 6]); // ThursdayÃ¢â‚¬â€œSaturday
+const allowedEventWeekdays = new Set([4, 5, 6]); // Thursday–Saturday
 
 const bookedDateSet = new Set<string>([
   "2024-11-09",
@@ -204,6 +207,12 @@ const holdDateSet = new Set<string>([
   "2024-12-14",
   "2025-02-08",
 ]);
+
+const BOOKED_DATES = Array.from(
+  bookedDateSet,
+  isoDateStringToMidnightDate
+);
+const HOLD_DATES = Array.from(holdDateSet, isoDateStringToMidnightDate);
 
 
 type AvailabilityStatus = "available" | "hold" | "booked" | "unavailable" | "past";
@@ -263,17 +272,21 @@ const contactSchema = z.object({
 });
 
 const customSchema = z.object({
-  guestCount: z.preprocess((val) => {
-    if (typeof val === "string") return Number(val);
-    return val;
-  }, z.number().min(10, "Minimum 10 guests").max(120, "Tiny Diner max 120")),
+  guestCount: z.coerce
+    .number()
+    .min(10, "Minimum 10 guests")
+    .max(120, "Tiny Diner max 120"),
   foodStyle: z.enum(["buffet", "plated", "appetizers"]),
   beverage: z.enum(["wine", "cocktails", "na"]),
   cake: z.enum(["need", "bring"]),
   floral: z.enum(["inHouse", "bring"]),
   coordinator: z.enum(["fullPlanning", "dayOf", "none"]),
   officiant: z.enum(["provide", "bring"]),
-  notes: z.string().max(1000, "Please keep notes under 1000 characters").optional(),
+  notes: z
+    .string()
+    .max(1000, "Please keep notes under 1000 characters")
+    .optional()
+    .transform((value) => value?.trim() ?? ""),
 });
 
 const initialCustomSelections: CustomSelections = {
@@ -325,7 +338,7 @@ export default function TinyDinerApp() {
   });
 
   const customForm = useForm<z.infer<typeof customSchema>>({
-    resolver: zodResolver(customSchema) as unknown as Resolver<z.infer<typeof customSchema>>,
+    resolver: zodResolver(customSchema),
     defaultValues: {
       guestCount: initialCustomSelections.guestCount,
       foodStyle: initialCustomSelections.foodStyle,
@@ -338,26 +351,12 @@ export default function TinyDinerApp() {
     },
   });
 
-  const streamlinedDeposit = useMemo(() => {
-    return Math.round(STREAMLINED_PACKAGE.price * STREAMLINED_PACKAGE.depositRate);
+  const calendarDisabledDays = useCallback((date: Date) => {
+    const normalized = startOfDay(date);
+    if (isBefore(normalized, startOfToday())) return true;
+    const status = getAvailabilityStatus(normalized);
+    return status !== "available";
   }, []);
-
-  const calendarDisabledDays = useMemo<(date: Date) => boolean>(() => {
-    return (date: Date) => {
-      if (isBefore(date, startOfToday())) return true;
-      const status = getAvailabilityStatus(date);
-      return status !== "available";
-    };
-  }, []);
-
-  const holdDates = useMemo(
-    () => Array.from(holdDateSet).map((iso) => new Date(`${iso}T00:00:00`)),
-    []
-  );
-  const bookedDates = useMemo(
-    () => Array.from(bookedDateSet).map((iso) => new Date(`${iso}T00:00:00`)),
-    []
-  );
 
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return;
@@ -393,7 +392,7 @@ export default function TinyDinerApp() {
       planType: "streamlined",
       streamlinedSummary: {
         total: STREAMLINED_PACKAGE.price,
-        deposit: streamlinedDeposit,
+        deposit: STREAMLINED_DEPOSIT,
       },
       customEstimate: undefined,
     }));
@@ -401,16 +400,8 @@ export default function TinyDinerApp() {
   };
 
   const handleCustomSubmit = customForm.handleSubmit((values) => {
-    const numericGuestCount = Number(values.guestCount);
     const nextSelections: CustomSelections = {
-      guestCount: numericGuestCount,
-      foodStyle: values.foodStyle,
-      beverage: values.beverage,
-      cake: values.cake,
-      floral: values.floral,
-      coordinator: values.coordinator,
-      officiant: values.officiant,
-      notes: values.notes ?? "",
+      ...values,
     };
 
     const estimate = buildCustomEstimate(nextSelections);
@@ -449,22 +440,21 @@ export default function TinyDinerApp() {
   };
 
   const handleSendMessage = (text: string) => {
-    if (!text.trim()) return;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `client-${Date.now()}`,
-        sender: "Client",
-        body: text.trim(),
-        timestamp: new Date(),
-      },
-      {
-        id: `auto-${Date.now()}`,
-        sender: "Tiny Diner",
-  body: "Thanks! A coordinator will reply shortly and we&apos;ll log this thread inside HoneyBook as well.",
-        timestamp: new Date(),
-      },
-    ]);
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const clientMessage: Message = {
+      id: generateMessageId("client"),
+      sender: "Client",
+      body: trimmed,
+      timestamp: new Date(),
+    };
+    const autoMessage: Message = {
+      id: generateMessageId("auto"),
+      sender: "Tiny Diner",
+      body: "Thanks! A coordinator will reply shortly and we&apos;ll log this thread inside HoneyBook as well.",
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, clientMessage, autoMessage]);
   };
 
   const handleStartPayment = async (method: "ach" | "card") => {
@@ -538,7 +528,7 @@ export default function TinyDinerApp() {
                     numberOfMonths={2}
                     className="rounded-md border bg-white"
                     disabled={calendarDisabledDays}
-                    modifiers={{ hold: holdDates, booked: bookedDates }}
+                    modifiers={{ hold: HOLD_DATES, booked: BOOKED_DATES }}
                     modifiersClassNames={{
                       hold: "bg-amber-200 text-amber-900 hover:bg-amber-200",
                       booked: "bg-rose-200 text-rose-900 opacity-70",
@@ -649,7 +639,7 @@ export default function TinyDinerApp() {
                           ${STREAMLINED_PACKAGE.price.toLocaleString()}
                         </p>
                         <p className="text-sm text-rose-600">
-                          ${streamlinedDeposit.toLocaleString()} deposit to reserve your date
+                          ${STREAMLINED_DEPOSIT.toLocaleString()} deposit to reserve your date
                         </p>
                       </div>
                       <ul className="list-disc space-y-2 pl-5 text-sm text-slate-600">
@@ -1021,7 +1011,7 @@ function ReviewDashboard({
           <div>
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.25em] text-slate-500">
               <CalendarDays className="h-4 w-4 text-rose-500" />
-              {format(booking.eventDate!, "MMM d, yyyy")} Ã‚Â· Tiny Diner
+              {format(booking.eventDate!, "MMM d, yyyy")} · Tiny Diner
             </div>
             <CardTitle className="text-3xl text-slate-900">Shared wedding dashboard</CardTitle>
             <CardDescription>
@@ -1076,7 +1066,7 @@ function ReviewDashboard({
                     <p className="text-xs text-emerald-700/70">
                       {booking.planType === "streamlined"
                         ? `${STREAMLINED_PACKAGE.inclusions.length} curated inclusions`
-                        : `${booking.customSelections.guestCount} guests Ã‚Â· ${readableFood(booking.customSelections.foodStyle)} dining`}
+                        : `${booking.customSelections.guestCount} guests · ${readableFood(booking.customSelections.foodStyle)} dining`}
                     </p>
                   </div>
                 </div>
@@ -1126,7 +1116,7 @@ function ReviewDashboard({
                 <div>
                   <p className="text-xs uppercase text-slate-500">Deposit due to reserve</p>
                   <p className="text-2xl font-semibold text-rose-600">${depositDue.toLocaleString()}</p>
-                  <p className="text-xs text-rose-500">ACH encouraged Ã¢â‚¬Â¢ Card adds 3% processing</p>
+                  <p className="text-xs text-rose-500">ACH encouraged • Card adds 3% processing</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase text-slate-500">Status</p>
@@ -1199,7 +1189,7 @@ function ReviewDashboard({
                     <div key={message.id} className="rounded-lg border border-slate-200 bg-white/90 p-3 text-sm shadow-sm">
                       <div className="flex items-center justify-between text-xs text-slate-400">
                         <span>{message.sender}</span>
-                        <span>{format(message.timestamp, "MMM d Ã‚Â· h:mm a")}</span>
+                        <span>{format(message.timestamp, "MMM d · h:mm a")}</span>
                       </div>
                       <p className="mt-1 text-slate-700">{message.body}</p>
                     </div>
@@ -1455,6 +1445,18 @@ function coordinatorLabel(option: CustomSelections["coordinator"]) {
 
 function officiantLabel(option: CustomSelections["officiant"]) {
   return option === "provide" ? "Tiny Diner officiant" : "Client-provided officiant";
+}
+
+function isoDateStringToMidnightDate(iso: string): Date {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function generateMessageId(prefix: string): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function getAvailabilityStatus(date: Date): AvailabilityStatus {
