@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { useAuth } from './AuthProvider';
+import { getFirebaseConfigError, getFirebaseAuth, getGoogleProvider } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,8 @@ const emailSignupSchema = z.object({
 
 export function AuthDialog({ open, onOpenChange, onAuthed }: { open: boolean; onOpenChange: (o: boolean) => void; onAuthed?: () => void }) {
   const { googleSignIn, emailLinkStart, user, loading, error } = useAuth();
+  const configError = getFirebaseConfigError();
+  const authReady = !!getFirebaseAuth() && !!getGoogleProvider() && !configError;
   const [mode, setMode] = useState<'login' | 'signup'>('signup');
   const form = useForm<z.infer<typeof emailSignupSchema>>({
     resolver: zodResolver(emailSignupSchema),
@@ -54,8 +57,8 @@ export function AuthDialog({ open, onOpenChange, onAuthed }: { open: boolean; on
         </DialogHeader>
         <div className="space-y-5">
           <div className="space-y-3">
-            <Button onClick={handleGoogle} disabled={loading} className="w-full bg-rose-600 hover:bg-rose-700 text-white">
-              Continue with Google
+            <Button onClick={handleGoogle} disabled={loading || !authReady} className="w-full bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-60 disabled:cursor-not-allowed">
+              {configError ? 'Firebase misconfigured' : (!authReady ? 'Initializing...' : 'Continue with Google')}
             </Button>
             <p className="text-center text-xs uppercase text-slate-400">or {mode === 'signup' ? 'sign up' : 'log in'} with email</p>
           </div>
@@ -103,7 +106,8 @@ export function AuthDialog({ open, onOpenChange, onAuthed }: { open: boolean; on
               Check your inbox for a sign-in link. Open it on this device to finish creating your account.
             </div>
           )}
-          {error && <p className="text-xs text-rose-600">{error}</p>}
+          {configError && <p className="text-xs text-rose-600">{configError}</p>}
+          {error && !configError && <p className="text-xs text-rose-600">{error}</p>}
           <p className="text-center text-xs text-slate-500">
             {mode === 'signup' ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button type="button" className="text-rose-600 underline" onClick={() => setMode(mode === 'signup' ? 'login' : 'signup')}>
