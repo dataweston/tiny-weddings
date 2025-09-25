@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useState } from "react";
 import {
   
@@ -58,9 +57,10 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Logo } from "@/components/Logo";
 
 const STREAMLINED_PACKAGE = {
   name: "Tiny Diner Signature",
@@ -338,7 +338,8 @@ export default function TinyDinerApp() {
   });
 
   const customForm = useForm<z.infer<typeof customSchema>>({
-    resolver: zodResolver(customSchema),
+    // Cast needed due to zod preprocess + optional field nuance causing generic inference friction
+    resolver: zodResolver(customSchema) as unknown as Resolver<z.infer<typeof customSchema>>,
     defaultValues: {
       guestCount: initialCustomSelections.guestCount,
       foodStyle: initialCustomSelections.foodStyle,
@@ -856,7 +857,7 @@ function HeaderSection({ booking }: { booking: BookingState }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <span className="flex h-20 w-36 items-center justify-center rounded-xl border border-rose-100 bg-white/80 p-2 shadow-sm">
-            <Image src="/tiny-diner-logo-2.png" alt="Tiny Diner logo" width={208} height={96} priority />
+            <Logo priority className="h-auto w-full object-contain" />
           </span>
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Tiny Diner</p>
