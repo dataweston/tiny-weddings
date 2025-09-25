@@ -217,7 +217,7 @@ const HOLD_DATES = Array.from(holdDateSet, isoDateStringToMidnightDate);
 
 type AvailabilityStatus = "available" | "hold" | "booked" | "unavailable" | "past";
 
-type Step = "calendar" | "contact" | "plan" | "custom" | "review";
+type Step = "welcome" | "calendar" | "contact" | "plan" | "custom" | "review";
 
 type PlanType = "streamlined" | "custom" | null;
 
@@ -309,18 +309,14 @@ const DEMO_CUSTOMER = {
   pronouns: "they/them",
 };
 // Keep a reference (noop) ensuring bundlers treat it as used in development scenarios
-void DEMO_CUSTOMER;
+// DEMO_CUSTOMER will be used for initial prefill
 export default function TinyDinerApp() {
-  const [step, setStep] = useState<Step>("calendar");
+  const [step, setStep] = useState<Step>("welcome");
   const [booking, setBooking] = useState<BookingState>({
     eventDate: null,
     planType: null,
     client: {
-      primaryName: "",
-      partnerName: "",
-      email: "",
-      phone: "",
-      pronouns: "",
+      ...DEMO_CUSTOMER,
     },
     customSelections: initialCustomSelections,
     syncedToHoneybook: false,
@@ -339,13 +335,7 @@ export default function TinyDinerApp() {
 
   const contactForm = useForm<z.infer<typeof contactSchema>>({
     resolver: zodResolver(contactSchema),
-    defaultValues: {
-      primaryName: "",
-      partnerName: "",
-      email: "",
-      phone: "",
-      pronouns: "",
-    },
+    defaultValues: { ...DEMO_CUSTOMER },
   });
 
   const customForm = useForm<z.infer<typeof customSchema>>({
@@ -523,7 +513,7 @@ export default function TinyDinerApp() {
         <div className="flex flex-col gap-8">
           <div className="space-y-4">
             <StepIndicator currentStep={step} setStep={setStep} />
-
+            
             {/* Guided Dialogs for each step */}
             <Dialog open={step === "calendar"} onOpenChange={() => { /* keep guided modal open */ }}>
               <DialogContent className="sm:max-w-2xl md:max-w-3xl">
@@ -856,6 +846,32 @@ export default function TinyDinerApp() {
                 )}
               </DialogContent>
             </Dialog>
+
+            {/* Welcome Intro Dialog */}
+            <Dialog open={step === "welcome"} onOpenChange={() => {}}>
+              <DialogContent className="sm:max-w-2xl md:max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-rose-500 text-white font-semibold">1</span>
+                    Welcome to Tiny Diner Weddings
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-5 text-sm text-slate-600">
+                  <p>
+                    This demo pre-fills example couple details so you can jump directly into the booking flow. Start by reviewing availability, then confirm your info, select a signature or custom path, and generate a live estimate.
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-slate-600">
+                    <li>Real-time date selection (demo data)</li>
+                    <li>Pre-filled client intake form (editable)</li>
+                    <li>Streamlined vs. custom plan comparison</li>
+                    <li>Automatic estimate + deposit breakdown</li>
+                  </ul>
+                  <div className="pt-2 flex justify-end">
+                    <Button onClick={() => setStep("calendar")} className="bg-rose-600 hover:bg-rose-700 text-white">Get Started</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
@@ -894,6 +910,7 @@ function HeaderSection({ booking }: { booking: BookingState }) {
 
 function StepIndicator({ currentStep, setStep }: { currentStep: Step; setStep: (s: Step) => void }) {
   const steps: { id: Step; label: string; description?: string }[] = [
+    { id: "welcome", label: "Welcome", description: "Overview & demo" },
     { id: "calendar", label: "Select date", description: "Pick your wedding date" },
     { id: "contact", label: "Client info", description: "Tell us about the couple" },
     { id: "plan", label: "Choose path", description: "Pick a package or build custom" },
