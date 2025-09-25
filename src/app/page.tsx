@@ -519,368 +519,341 @@ export default function TinyDinerApp() {
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 pb-16 pt-10">
         <HeaderSection booking={booking} />
         <div className="flex flex-col gap-8">
-          {step === "calendar" && (
-            <Card className="h-fit border-none bg-white/80 shadow-lg shadow-slate-200/60">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
-                  <CalendarDays className="h-6 w-6 text-rose-500" /> Availability
-                </CardTitle>
-                <CardDescription>
-                  Choose your ideal date. Holds and booked dates are shown in color.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Calendar
-                  mode="single"
-                  selected={booking.eventDate ?? undefined}
-                  onSelect={handleDateSelect}
-                  numberOfMonths={2}
-                  className="rounded-md border bg-white"
-                  disabled={calendarDisabledDays}
-                  modifiers={{
-                    hold: holdDates,
-                    booked: bookedDates,
-                  }}
-                  modifiersClassNames={{
-                    hold: "bg-amber-200 text-amber-900 hover:bg-amber-200",
-                    booked: "bg-rose-200 text-rose-900 opacity-70",
-                  }}
-                />
-                <Legend />
-                <Alert variant="default" className="bg-sky-50">
-                  <ShieldCheck className="h-5 w-5 text-sky-600" />
-                  <AlertTitle>Reservable within 24 hours</AlertTitle>
-                  <AlertDescription>
-                    Once you pick a date, complete the intake to place a deposit and auto-sync your booking to HoneyBook.
-                  </AlertDescription>
-                </Alert>
-                {booking.eventDate && (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                      Selected date
-                    </p>
-                    <p className="text-lg font-medium text-slate-900">
-                      {format(booking.eventDate, "EEEE, MMMM d, yyyy")}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
           <div className="space-y-4">
-            <StepIndicator currentStep={step} planType={booking.planType} setStep={setStep} />
+            <StepIndicator currentStep={step} setStep={setStep} />
 
-            {step === "calendar" && (
-              <Card className="border-dashed border-slate-200 bg-white/60">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Sparkles className="h-5 w-5 text-rose-500" /> Let&apos;s begin with your date
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-600">
-                    Tiny Diner holds one wedding per day. Click on an available date on the calendar to unlock the rest of the onboarding steps.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-            {step === "contact" && (
-              <Card className="bg-white/70 shadow-lg shadow-slate-200/60">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl">
+            {/* Guided Dialogs for each step */}
+            <Dialog open={step === "calendar"} onOpenChange={() => { /* keep guided modal open */ }}>
+              <DialogContent className="sm:max-w-2xl md:max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
+                    <CalendarDays className="h-6 w-6 text-rose-500" /> Availability
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Calendar
+                    mode="single"
+                    selected={booking.eventDate ?? undefined}
+                    onSelect={handleDateSelect}
+                    numberOfMonths={2}
+                    className="rounded-md border bg-white"
+                    disabled={calendarDisabledDays}
+                    modifiers={{ hold: holdDates, booked: bookedDates }}
+                    modifiersClassNames={{
+                      hold: "bg-amber-200 text-amber-900 hover:bg-amber-200",
+                      booked: "bg-rose-200 text-rose-900 opacity-70",
+                    }}
+                  />
+                  <Legend />
+                  <Alert variant="default" className="bg-sky-50">
+                    <ShieldCheck className="h-5 w-5 text-sky-600" />
+                    <AlertTitle>Reservable within 24 hours</AlertTitle>
+                    <AlertDescription>
+                      Once you pick a date, complete the intake to place a deposit and auto-sync your booking to HoneyBook.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={step === "contact"} onOpenChange={() => {}}>
+              <DialogContent className="sm:max-w-2xl md:max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-xl">
                     <Users className="h-5 w-5 text-sky-500" /> Tell us about the couple
-                  </CardTitle>
-                  <CardDescription>
-                    We&apos;ll link these details with your HoneyBook profile and coordinator workspace.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...contactForm}>
-                    <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleContactSubmit}>
-                      <FormField
-                        control={contactForm.control}
-                        name="primaryName"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-1">
-                            <FormLabel>Primary contact name</FormLabel>
-                            <Input placeholder="Alex Rivera" {...field} />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={contactForm.control}
-                        name="partnerName"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-1">
-                            <FormLabel>Partner name</FormLabel>
-                            <Input placeholder="Jordan Lee" {...field} />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={contactForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-1">
-                            <FormLabel>Email</FormLabel>
-                            <Input placeholder="events@yourdomain.com" type="email" {...field} />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={contactForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-1">
-                            <FormLabel>Phone</FormLabel>
-                            <Input placeholder="612-555-0199" {...field} />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={contactForm.control}
-                        name="pronouns"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-1">
-                            <FormLabel>Pronouns</FormLabel>
-                            <Input placeholder="they/them" {...field} />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="md:col-span-2 flex justify-end gap-3">
-                        <Button type="button" variant="outline" onClick={() => setStep("calendar")}>
-                          Back to calendar
-                        </Button>
-                        <Button type="submit">Continue to packages</Button>
-                      </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            )}
-
-            {step === "plan" && (
-              <div className="grid gap-6 lg:grid-cols-2">
-                <Card className="border-2 border-rose-200 bg-white/80 shadow-xl shadow-rose-100/60">
-                  <CardHeader className="space-y-2">
-                    <Badge className="w-fit bg-rose-500 hover:bg-rose-500">Fastest</Badge>
-                    <CardTitle className="text-2xl text-rose-700">{STREAMLINED_PACKAGE.name}</CardTitle>
-                    <CardDescription>{STREAMLINED_PACKAGE.headline}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <p className="text-3xl font-semibold text-rose-700">
-                        ${STREAMLINED_PACKAGE.price.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-rose-600">
-                        ${streamlinedDeposit.toLocaleString()} deposit to reserve your date
-                      </p>
+                  </DialogTitle>
+                </DialogHeader>
+                <Form {...contactForm}>
+                  <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleContactSubmit}>
+                    <FormField
+                      control={contactForm.control}
+                      name="primaryName"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-1">
+                          <FormLabel>Primary contact name</FormLabel>
+                          <Input placeholder="Alex Rivera" {...field} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="partnerName"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-1">
+                          <FormLabel>Partner name</FormLabel>
+                          <Input placeholder="Jordan Lee" {...field} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-1">
+                          <FormLabel>Email</FormLabel>
+                          <Input placeholder="events@yourdomain.com" type="email" {...field} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-1">
+                          <FormLabel>Phone</FormLabel>
+                          <Input placeholder="612-555-0199" {...field} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contactForm.control}
+                      name="pronouns"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-1">
+                          <FormLabel>Pronouns</FormLabel>
+                          <Input placeholder="they/them" {...field} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="md:col-span-2 flex justify-end gap-3">
+                      <Button type="button" variant="outline" onClick={() => setStep("calendar")}>
+                        Back to calendar
+                      </Button>
+                      <Button type="submit">Continue to packages</Button>
                     </div>
-                    <ul className="list-disc space-y-2 pl-5 text-sm text-slate-600">
-                      {STREAMLINED_PACKAGE.inclusions.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  <CardFooter className="flex flex-col gap-3">
-                    <Button className="w-full bg-rose-600 text-white hover:bg-rose-700" onClick={chooseStreamlined}>
-                      Lock in the signature experience
-                    </Button>
-                    <p className="text-xs text-rose-600">
-                      Ideal if you want Tiny Diner to handle creative direction, food & beverage, and timeline.
-                    </p>
-                  </CardFooter>
-                </Card>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
 
-                <Card className="border border-slate-200 bg-white/70">
-                  <CardHeader>
-                    <CardTitle className="text-xl">Custom build-out</CardTitle>
-                    <CardDescription>
-                      Design your celebration with mix-and-match services. We&apos;ll prepare a bespoke estimate and coordinator brief.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-4xl font-semibold text-slate-800">
-                      Tailored pricing
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      Pick culinary format, beverage approach, vendor support, and ceremony services. Pricing updates instantly.
-                    </p>
-                  </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" className="w-full" onClick={() => setStep("custom")}>Build a custom plan</Button>
-                  </CardFooter>
-                </Card>
-              </div>
-            )}
+            <Dialog open={step === "plan"} onOpenChange={() => {}}>
+              <DialogContent className="sm:max-w-2xl md:max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle className="text-xl">Choose your path</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <Card className="border-2 border-rose-200 bg-white/80 shadow-xl shadow-rose-100/60">
+                    <CardHeader className="space-y-2">
+                      <Badge className="w-fit bg-rose-500 hover:bg-rose-500">Fastest</Badge>
+                      <CardTitle className="text-2xl text-rose-700">{STREAMLINED_PACKAGE.name}</CardTitle>
+                      <CardDescription>{STREAMLINED_PACKAGE.headline}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <p className="text-3xl font-semibold text-rose-700">
+                          ${STREAMLINED_PACKAGE.price.toLocaleString()}
+                        </p>
+                        <p className="text-sm text-rose-600">
+                          ${streamlinedDeposit.toLocaleString()} deposit to reserve your date
+                        </p>
+                      </div>
+                      <ul className="list-disc space-y-2 pl-5 text-sm text-slate-600">
+                        {STREAMLINED_PACKAGE.inclusions.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                    <CardFooter className="flex flex-col gap-3">
+                      <Button className="w-full bg-rose-600 text-white hover:bg-rose-700" onClick={chooseStreamlined}>
+                        Lock in the signature experience
+                      </Button>
+                      <p className="text-xs text-rose-600">
+                        Ideal if you want Tiny Diner to handle creative direction, food & beverage, and timeline.
+                      </p>
+                    </CardFooter>
+                  </Card>
 
-            {step === "custom" && (
-              <Card className="bg-white/80 shadow-lg shadow-slate-200/60">
-                <CardHeader>
-                  <CardTitle className="text-2xl">Customize your celebration</CardTitle>
-                  <CardDescription>
-                    We&apos;ll translate these answers into a working estimate and HoneyBook project board.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...customForm}>
-                    <form className="grid gap-6" onSubmit={handleCustomSubmit}>
+                  <Card className="border border-slate-200 bg-white/70">
+                    <CardHeader>
+                      <CardTitle className="text-xl">Custom build-out</CardTitle>
+                      <CardDescription>
+                        Design your celebration with mix-and-match services. We&apos;ll prepare a bespoke estimate and coordinator brief.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-4xl font-semibold text-slate-800">
+                        Tailored pricing
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Pick culinary format, beverage approach, vendor support, and ceremony services. Pricing updates instantly.
+                      </p>
+                    </CardContent>
+                    <CardFooter>
+                      <Button variant="outline" className="w-full" onClick={() => setStep("custom")}>Build a custom plan</Button>
+                    </CardFooter>
+                  </Card>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={step === "custom"} onOpenChange={() => {}}>
+              <DialogContent className="sm:max-w-2xl md:max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl">Customize your celebration</DialogTitle>
+                </DialogHeader>
+                <Form {...customForm}>
+                  <form className="grid gap-6" onSubmit={handleCustomSubmit}>
+                    <FormField
+                      control={customForm.control}
+                      name="guestCount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Guest count</FormLabel>
+                          <Input type="number" min={10} max={120} {...field} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid gap-4 md:grid-cols-2">
                       <FormField
                         control={customForm.control}
-                        name="guestCount"
+                        name="foodStyle"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Guest count</FormLabel>
-                            <Input type="number" min={10} max={120} {...field} />
+                            <FormLabel>Dining style</FormLabel>
+                            <RadioGroup
+                              className="grid gap-3"
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
+                              <OptionCard value="buffet" title="Seasonal buffet" subtitle="Best for relaxed flow" />
+                              <OptionCard value="plated" title="Coursed & plated" subtitle="Elevated dining with staffing" />
+                              <OptionCard value="appetizers" title="Passed appetizers" subtitle="Cocktail-forward mix & mingle" />
+                            </RadioGroup>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
 
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <FormField
-                          control={customForm.control}
-                          name="foodStyle"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Dining style</FormLabel>
-                              <RadioGroup
-                                className="grid gap-3"
-                                onValueChange={field.onChange}
-                                value={field.value}
-                              >
-                                <OptionCard value="buffet" title="Seasonal buffet" subtitle="Best for relaxed flow" />
-                                <OptionCard value="plated" title="Coursed & plated" subtitle="Elevated dining with staffing" />
-                                <OptionCard value="appetizers" title="Passed appetizers" subtitle="Cocktail-forward mix & mingle" />
-                              </RadioGroup>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={customForm.control}
-                          name="beverage"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Beverage</FormLabel>
-                              <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
-                                <OptionCard value="wine" title="Beer, wine & NA" subtitle="Local selections + coffee service" />
-                                <OptionCard value="cocktails" title="Signature cocktails" subtitle="Custom cocktail design + bartender" />
-                                <OptionCard value="na" title="Zero-proof" subtitle="Craft sodas, shrubs, espresso" />
-                              </RadioGroup>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <FormField
-                          control={customForm.control}
-                          name="cake"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Cake or dessert</FormLabel>
-                              <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
-                                <OptionCard value="need" title="We need Tiny Diner to provide" subtitle="Layered buttercream cakes & dessert table" />
-                                <OptionCard value="bring" title="We&apos;ll bring our own" subtitle="Storage & service support included" />
-                              </RadioGroup>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={customForm.control}
-                          name="floral"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Floral & decor</FormLabel>
-                              <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
-                                <OptionCard value="inHouse" title="Curated by Tiny Diner" subtitle="Partner florists with signature palette" />
-                                <OptionCard value="bring" title="We&apos;ll collaborate with our florist" subtitle="Space walk-through included" />
-                              </RadioGroup>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <FormField
-                          control={customForm.control}
-                          name="coordinator"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Coordination support</FormLabel>
-                              <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
-                                <OptionCard value="fullPlanning" title="Planning in advance" subtitle="12-week planning partnership" />
-                                <OptionCard value="dayOf" title="Day-of lead" subtitle="Timeline, vendors, and onsite management" />
-                                <OptionCard value="none" title="We have our own" subtitle="We&apos;ll still provide Tiny Diner host" />
-                              </RadioGroup>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={customForm.control}
-                          name="officiant"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Officiant</FormLabel>
-                              <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
-                                <OptionCard value="provide" title="Tiny Diner officiant" subtitle="Inclusive ceremony scripts + rehearsal" />
-                                <OptionCard value="bring" title="We&apos;ll bring our own" subtitle="We&apos;ll coordinate timeline + mic" />
-                              </RadioGroup>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
                       <FormField
                         control={customForm.control}
-                        name="notes"
+                        name="beverage"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Anything else we should know?</FormLabel>
-                            <Textarea placeholder="Tell us about your vision, must-haves, or accessibility notes." rows={4} {...field} />
+                            <FormLabel>Beverage</FormLabel>
+                            <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                              <OptionCard value="wine" title="Beer, wine & NA" subtitle="Local selections + coffee service" />
+                              <OptionCard value="cocktails" title="Signature cocktails" subtitle="Custom cocktail design + bartender" />
+                              <OptionCard value="na" title="Zero-proof" subtitle="Craft sodas, shrubs, espresso" />
+                            </RadioGroup>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <FormField
+                        control={customForm.control}
+                        name="cake"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Cake or dessert</FormLabel>
+                            <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                              <OptionCard value="need" title="We need Tiny Diner to provide" subtitle="Layered buttercream cakes & dessert table" />
+                              <OptionCard value="bring" title="We&apos;ll bring our own" subtitle="Storage & service support included" />
+                            </RadioGroup>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
 
-                      <div className="flex justify-between gap-3">
-                        <Button type="button" variant="outline" onClick={() => setStep("plan")}>Back</Button>
-                        <Button type="submit">Review estimate</Button>
-                      </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            )}
+                      <FormField
+                        control={customForm.control}
+                        name="floral"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Floral & decor</FormLabel>
+                            <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                              <OptionCard value="inHouse" title="Curated by Tiny Diner" subtitle="Partner florists with signature palette" />
+                              <OptionCard value="bring" title="We&apos;ll collaborate with our florist" subtitle="Space walk-through included" />
+                            </RadioGroup>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
-            {step === "review" && booking.eventDate && (
-              <ReviewDashboard
-                booking={booking}
-                messages={messages}
-                onSendMessage={handleSendMessage}
-                onSyncHoneybook={handleSyncHoneybook}
-                syncing={isSyncing}
-                onStartPayment={handleStartPayment}
-                processingPayment={isProcessingPayment}
-                totalEstimate={totalEstimate}
-                depositDue={depositDue}
-              />
-            )}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <FormField
+                        control={customForm.control}
+                        name="coordinator"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Coordination support</FormLabel>
+                            <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                              <OptionCard value="fullPlanning" title="Planning in advance" subtitle="12-week planning partnership" />
+                              <OptionCard value="dayOf" title="Day-of lead" subtitle="Timeline, vendors, and onsite management" />
+                              <OptionCard value="none" title="We have our own" subtitle="We&apos;ll still provide Tiny Diner host" />
+                            </RadioGroup>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={customForm.control}
+                        name="officiant"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Officiant</FormLabel>
+                            <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                              <OptionCard value="provide" title="Tiny Diner officiant" subtitle="Inclusive ceremony scripts + rehearsal" />
+                              <OptionCard value="bring" title="We&apos;ll bring our own" subtitle="We&apos;ll coordinate timeline + mic" />
+                            </RadioGroup>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={customForm.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Anything else we should know?</FormLabel>
+                          <Textarea placeholder="Tell us about your vision, must-haves, or accessibility notes." rows={4} {...field} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex justify-between gap-3">
+                      <Button type="button" variant="outline" onClick={() => setStep("plan")}>Back</Button>
+                      <Button type="submit">Review estimate</Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={step === "review" && !!booking.eventDate} onOpenChange={() => {}}>
+              <DialogContent className="sm:max-w-2xl md:max-w-5xl">
+                <DialogHeader>
+                  <DialogTitle className="text-xl">Review & dashboard</DialogTitle>
+                </DialogHeader>
+                {booking.eventDate && (
+                  <ReviewDashboard
+                    booking={booking}
+                    messages={messages}
+                    onSendMessage={handleSendMessage}
+                    onSyncHoneybook={handleSyncHoneybook}
+                    syncing={isSyncing}
+                    onStartPayment={handleStartPayment}
+                    processingPayment={isProcessingPayment}
+                    totalEstimate={totalEstimate}
+                    depositDue={depositDue}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
@@ -930,7 +903,19 @@ function StepIndicator({ currentStep, setStep }: { currentStep: Step; setStep: (
 
   return (
     <div className="flex gap-6">
-      <ol className="flex w-56 flex-col gap-3">
+      {/* Mobile top strip */}
+      <div className="flex w-full items-center justify-between rounded-md border border-slate-200 bg-white/70 px-3 py-2 md:hidden">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-xs font-semibold text-white">
+            {activeIndex + 1}
+          </span>
+          <span className="text-sm font-medium text-slate-800">{steps[activeIndex]?.label}</span>
+        </div>
+        <span className="text-xs text-slate-500">{activeIndex + 1} / {steps.length}</span>
+      </div>
+
+      {/* Desktop vertical progress */}
+      <ol className="hidden w-56 flex-col gap-3 md:flex">
         {steps.map((s, i) => {
           const isActive = i === activeIndex;
           const isComplete = i < activeIndex;
@@ -950,37 +935,6 @@ function StepIndicator({ currentStep, setStep }: { currentStep: Step; setStep: (
           );
         })}
       </ol>
-
-      <div className="flex-1">
-        <Dialog>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="text-xl">{steps[activeIndex]?.label}</DialogTitle>
-              <div className="text-sm text-slate-600">{steps[activeIndex]?.description}</div>
-            </DialogHeader>
-
-            <div className="mt-4">
-              <p className="text-sm text-slate-700">Follow the step to complete this part of onboarding. Use the buttons below to navigate.</p>
-            </div>
-
-            <div className="mt-6 flex justify-between">
-              <div>
-                {activeIndex > 0 && (
-                  <Button variant="outline" onClick={() => setStep(steps[activeIndex - 1].id)}>Back</Button>
-                )}
-              </div>
-              <div className="flex gap-3">
-                {activeIndex < steps.length - 1 && (
-                  <Button onClick={() => setStep(steps[activeIndex + 1].id)}>Next</Button>
-                )}
-                {activeIndex === steps.length - 1 && (
-                  <Button className="bg-emerald-600 text-white">Finish</Button>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
     </div>
   );
 }
