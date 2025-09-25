@@ -69,9 +69,9 @@ const STREAMLINED_PACKAGE = {
     "Our streamlined celebration locks in a curated 4-hour experience with food, beverage, design touches, and a personal Tiny Diner host.",
   inclusions: [
     "Dedicated Tiny Diner event host & team",
-    "Up to 80 guests with family-style seasonal menu",
+    "Up to 35 guests",
+    "Passed appetizers by Local Effort",
     "Beer, wine, and craft NA beverage service",
-    "Tiny Diner layered dessert display",
     "On-site coordination & timeline support",
   ],
   price: 4000,
