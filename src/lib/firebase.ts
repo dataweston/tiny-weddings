@@ -1,4 +1,10 @@
-import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
+import {
+  getApp,
+  getApps,
+  initializeApp,
+  type FirebaseApp,
+  type FirebaseOptions,
+} from "firebase/app";
 import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
 
 type FirebaseParts = {
@@ -8,7 +14,7 @@ type FirebaseParts = {
   error: string | null;
 };
 
-const config = {
+const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -16,14 +22,14 @@ const config = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-const requiredKeys: Array<keyof typeof config> = [
+const requiredKeys: Array<keyof typeof firebaseConfig> = [
   "apiKey",
   "authDomain",
   "projectId",
   "appId",
 ];
 
-const missingKeys = requiredKeys.filter((key) => !config[key]);
+const missingKeys = requiredKeys.filter((key) => !firebaseConfig[key]);
 
 let firebase: FirebaseParts = {
   app: null,
@@ -32,14 +38,31 @@ let firebase: FirebaseParts = {
   error: null,
 };
 
-if (missingKeys.length > 0) {
-  firebase = {
-    ...firebase,
-    error: `Missing Firebase environment variables: ${missingKeys.join(", ")}`,
-  };
-} else {
+const initializeFirebase = () => {
+  if (firebase.app || firebase.error) {
+    return;
+  }
+
+  if (missingKeys.length > 0) {
+    firebase = {
+      ...firebase,
+      error: `Missing Firebase environment variables: ${missingKeys.join(", ")}`,
+    };
+    return;
+  }
+
+  if (typeof window === "undefined") {
+    firebase = {
+      ...firebase,
+      error: "Firebase Auth can only be initialized in a browser environment.",
+    };
+    return;
+  }
+
   try {
-    const app = getApps().length > 0 ? getApp() : initializeApp(config);
+    const app = getApps().length > 0
+      ? getApp()
+      : initializeApp(firebaseConfig as FirebaseOptions);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
@@ -56,7 +79,9 @@ if (missingKeys.length > 0) {
       error: error instanceof Error ? error.message : "Failed to initialize Firebase",
     };
   }
-}
+};
+
+initializeFirebase();
 
 export const firebaseApp = firebase.app;
 export const firebaseAuth = firebase.auth;
