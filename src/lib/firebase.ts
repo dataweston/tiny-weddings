@@ -12,16 +12,16 @@ type FirebaseParts = {
   app: FirebaseApp | null;
   auth: Auth | null;
   provider: GoogleAuthProvider | null;
-  db: Firestore | null;
   error: string | null;
+  db?: Firestore | null;
 };
 
 const defaultParts: FirebaseParts = {
   app: null,
   auth: null,
   provider: null,
-  db: null,
   error: null,
+  db: null,
 };
 
 declare global {
@@ -38,8 +38,6 @@ const ensureFirebase = (): FirebaseParts => {
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
   } satisfies Partial<FirebaseOptions>;
 
@@ -71,18 +69,12 @@ const ensureFirebase = (): FirebaseParts => {
     const app = getApps().length > 0
       ? getApp()
       : initializeApp(firebaseConfig as FirebaseOptions);
-    const auth = getAuth(app);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
-    const db = getFirestore(app);
 
-    const parts: FirebaseParts = {
-      app,
-      auth,
-      provider,
-      db,
-      error: null,
-    };
+    const parts: FirebaseParts = { app, auth, provider, error: null, db };
 
     globalThis.__tinyFirebaseClient = parts;
     return parts;
@@ -101,5 +93,8 @@ const firebase = ensureFirebase();
 export const firebaseApp = firebase.app;
 export const firebaseAuth = firebase.auth;
 export const googleProvider = firebase.provider;
-export const firebaseFirestore = firebase.db;
 export const firebaseConfigError = firebase.error;
+
+export function getFirebaseApp() { return firebaseApp; }
+export function getFirebaseAuth() { return firebaseAuth; }
+export function getFirestoreDb() { return firebase.db ?? null; }

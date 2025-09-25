@@ -61,6 +61,11 @@ import { useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Logo } from "@/components/Logo";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { AuthDialog } from "@/components/auth/AuthDialog";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestoreDb } from "@/lib/firebase";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 const STREAMLINED_PACKAGE = {
   name: "Tiny Diner Signature",
@@ -311,6 +316,8 @@ const DEMO_CUSTOMER = {
 // Keep a reference (noop) ensuring bundlers treat it as used in development scenarios
 // DEMO_CUSTOMER will be used for initial prefill
 export default function TinyDinerApp() {
+  const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [step, setStep] = useState<Step>("welcome");
   const [booking, setBooking] = useState<BookingState>({
     eventDate: null,
@@ -506,6 +513,45 @@ export default function TinyDinerApp() {
     ? booking.streamlinedSummary?.deposit ?? 0
     : booking.customEstimate?.deposit ?? 0;
 
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSaveEstimate = async () => {
+    setSaveError(null);
+    if (!user) {
+      setAuthDialogOpen(true);
+      return;
+    }
+    if (!booking.eventDate || !booking.planType) return;
+    setSaving(true);
+    try {
+      const db = getFirestoreDb();
+      if (!db) {
+        throw new Error("Firestore not initialized (missing env vars?)");
+      }
+      const docRef = await addDoc(collection(db, "estimates"), {
+        uid: user.uid,
+        createdAt: serverTimestamp(),
+        eventDate: booking.eventDate.toISOString(),
+        planType: booking.planType,
+        client: booking.client,
+        estimate: booking.planType === "streamlined" ? booking.streamlinedSummary : booking.customEstimate,
+        customSelections: booking.planType === "custom" ? booking.customSelections : null,
+        messages: messages.map(m => ({ ...m, timestamp: m.timestamp.toISOString() })),
+      });
+      console.info("Saved estimate", docRef.id);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 4000);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to save";
+      setSaveError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-dvh bg-gradient-to-br from-[#f6f4f1] via-white to-[#f5fbff] text-slate-900 overflow-x-hidden">
       <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-10 px-4 sm:px-6 pb-20 pt-8 lg:pt-10">
@@ -513,10 +559,11 @@ export default function TinyDinerApp() {
         <div className="flex flex-col gap-8">
           <div className="space-y-4">
             <StepIndicator currentStep={step} setStep={setStep} />
+            <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} onAuthed={() => setAuthDialogOpen(false)} />
             
             {/* Guided Dialogs for each step */}
             <Dialog open={step === "calendar"} onOpenChange={() => { /* keep guided modal open */ }}>
-              <DialogContent className="sm:max-w-2xl md:max-w-3xl">
+              <DialogContent className="sm:max-w-2xl md:max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
                     <CalendarDays className="h-6 w-6 text-rose-500" /> Availability
@@ -527,7 +574,7 @@ export default function TinyDinerApp() {
                     mode="single"
                     selected={booking.eventDate ?? undefined}
                     onSelect={handleDateSelect}
-                    numberOfMonths={2}
+                    numberOfMonths={isMobile ? 1 : 2}
                     className="rounded-md border bg-white"
                     disabled={calendarDisabledDays}
                     modifiers={{ hold: HOLD_DATES, booked: BOOKED_DATES }}
@@ -549,7 +596,7 @@ export default function TinyDinerApp() {
             </Dialog>
 
             <Dialog open={step === "contact"} onOpenChange={() => {}}>
-              <DialogContent className="sm:max-w-2xl md:max-w-3xl">
+              <DialogContent className="sm:max-w-2xl md:max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 text-xl">
                     <Users className="h-5 w-5 text-sky-500" /> Tell us about the couple
@@ -624,7 +671,7 @@ export default function TinyDinerApp() {
             </Dialog>
 
             <Dialog open={step === "plan"} onOpenChange={() => {}}>
-              <DialogContent className="sm:max-w-2xl md:max-w-4xl">
+              <DialogContent className="sm:max-w-2xl md:max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
                 <DialogHeader>
                   <DialogTitle className="text-xl">Choose your path</DialogTitle>
                 </DialogHeader>
@@ -684,7 +731,7 @@ export default function TinyDinerApp() {
             </Dialog>
 
             <Dialog open={step === "custom"} onOpenChange={() => {}}>
-              <DialogContent className="sm:max-w-2xl md:max-w-3xl">
+              <DialogContent className="sm:max-w-2xl md:max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
                 <DialogHeader>
                   <DialogTitle className="text-2xl">Customize your celebration</DialogTitle>
                 </DialogHeader>
@@ -827,7 +874,7 @@ export default function TinyDinerApp() {
             </Dialog>
 
             <Dialog open={step === "review" && !!booking.eventDate} onOpenChange={() => {}}>
-              <DialogContent className="sm:max-w-2xl md:max-w-5xl">
+              <DialogContent className="sm:max-w-2xl md:max-w-5xl px-3 py-4 sm:px-6 sm:py-6">
                 <DialogHeader>
                   <DialogTitle className="text-xl">Review & dashboard</DialogTitle>
                 </DialogHeader>
@@ -842,6 +889,10 @@ export default function TinyDinerApp() {
                     processingPayment={isProcessingPayment}
                     totalEstimate={totalEstimate}
                     depositDue={depositDue}
+                    onSaveEstimate={handleSaveEstimate}
+                    saving={saving}
+                    saveSuccess={saveSuccess}
+                    saveError={saveError}
                   />
                 )}
               </DialogContent>
@@ -849,7 +900,7 @@ export default function TinyDinerApp() {
 
             {/* Welcome Intro Dialog */}
             <Dialog open={step === "welcome"} onOpenChange={() => {}}>
-              <DialogContent className="sm:max-w-2xl md:max-w-3xl">
+              <DialogContent className="sm:max-w-2xl md:max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 text-2xl font-semibold text-slate-900">
                     <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-rose-500 text-white font-semibold">1</span>
@@ -1012,6 +1063,10 @@ function ReviewDashboard({
   processingPayment,
   totalEstimate,
   depositDue,
+  onSaveEstimate,
+  saving,
+  saveSuccess,
+  saveError,
 }: {
   booking: BookingState;
   messages: Message[];
@@ -1022,6 +1077,10 @@ function ReviewDashboard({
   processingPayment: boolean;
   totalEstimate: number;
   depositDue: number;
+  onSaveEstimate: () => void;
+  saving: boolean;
+  saveSuccess: boolean;
+  saveError: string | null;
 }) {
   const [draftMessage, setDraftMessage] = useState("");
 
@@ -1034,7 +1093,7 @@ function ReviewDashboard({
         })) ?? [];
 
   return (
-    <Card className="border border-slate-200/80 bg-white/80 shadow-xl shadow-slate-200/70">
+    <Card className="border border-slate-200/80 bg-white/80 shadow-xl shadow-slate-200/70 relative pb-24 md:pb-6">
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -1057,7 +1116,7 @@ function ReviewDashboard({
       </CardHeader>
       <CardContent className="space-y-6">
         <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="w-full grid grid-cols-4 md:grid-cols-4 overflow-x-auto scrollbar-none gap-0 [--tw-border-opacity:1]">
             <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="vendors">Vendors</TabsTrigger>
             <TabsTrigger value="messages">Messages</TabsTrigger>
@@ -1154,6 +1213,13 @@ function ReviewDashboard({
               </CardContent>
               <CardFooter className="flex flex-wrap gap-3">
                 <Button
+                  variant="outline"
+                  onClick={onSaveEstimate}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : saveSuccess ? "Saved" : "Save estimate"}
+                </Button>
+                <Button
                   onClick={() => onStartPayment("ach")}
                   disabled={processingPayment}
                   className="bg-emerald-600 text-white hover:bg-emerald-700"
@@ -1171,6 +1237,9 @@ function ReviewDashboard({
                   Square handles payment processing. Funds post to Tiny Diner events account with automatic receipt.
                 </p>
               </CardFooter>
+              {saveError && (
+                <p className="px-6 pb-4 text-xs text-rose-600">{saveError}</p>
+              )}
             </Card>
 
             <Card className="border border-slate-200 bg-white/70">
@@ -1284,6 +1353,18 @@ function ReviewDashboard({
           </TabsContent>
         </Tabs>
       </CardContent>
+      {/* Mobile floating action bar */}
+      <div className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/70 px-4 py-3 flex items-center gap-2">
+        <Button variant="outline" size="sm" className="flex-1" onClick={onSaveEstimate} disabled={saving}>
+          {saving ? 'Saving' : saveSuccess ? 'Saved' : 'Save'}
+        </Button>
+        <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => onStartPayment('ach')} disabled={processingPayment}>
+          Pay deposit
+        </Button>
+        <Button size="sm" variant="outline" className="flex-1" onClick={onSyncHoneybook} disabled={syncing}>
+          {syncing ? 'Sync…' : 'Sync'}
+        </Button>
+      </div>
     </Card>
   );
 }
@@ -1300,39 +1381,83 @@ function VendorSection({
           <Sparkles className="h-5 w-5 text-rose-500" /> {section.category}
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-4 md:grid-cols-2">
-        {section.vendors.map((vendor) => (
-          <div key={vendor.name} className="space-y-2 rounded-lg border border-slate-200/80 bg-white/80 p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{vendor.name}</p>
-                <p className="text-xs text-slate-500">{vendor.cost}</p>
-              </div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline">Message</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Message {vendor.name}</DialogTitle>
-                  </DialogHeader>
-                  <p className="text-sm text-slate-600">
-                    Compose a note to {vendor.name}. We&apos;ll relay through HoneyBook while keeping this thread updated.
-                  </p>
-                  <Textarea rows={5} placeholder={`Write a message to ${vendor.name}`} />
-                  <Button>Send via Tiny Diner concierge</Button>
-                </DialogContent>
-              </Dialog>
-            </div>
-            <div className="text-xs text-slate-600">
-              <p>Email: {vendor.contact}</p>
-              <p>Phone: {vendor.phone}</p>
-            </div>
-            <p className="text-xs text-slate-500">{vendor.notes}</p>
+      <CardContent>
+        {/* Desktop grid */}
+        <div className="hidden gap-4 md:grid md:grid-cols-2">
+          {section.vendors.map((vendor) => (
+            <VendorCard key={vendor.name} vendor={vendor} />
+          ))}
+        </div>
+        {/* Mobile accordion */}
+        <div className="md:hidden">
+          <div className="divide-y divide-slate-200 border border-slate-200 rounded-lg overflow-hidden">
+            {section.vendors.map((vendor) => (
+              <details key={vendor.name} className="group">
+                <summary className="flex cursor-pointer list-none items-center justify-between bg-white/80 px-4 py-3 text-sm font-medium text-slate-800 group-open:bg-rose-50">
+                  <span>{vendor.name}</span>
+                  <span className="text-xs text-slate-500">{vendor.cost}</span>
+                </summary>
+                <div className="space-y-2 bg-white/70 p-4 text-xs text-slate-600">
+                  <p className="text-slate-500">{vendor.notes}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <span>Email:</span><span className="truncate">{vendor.contact}</span>
+                    <span>Phone:</span><span>{vendor.phone}</span>
+                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="w-full">Message vendor</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Message {vendor.name}</DialogTitle>
+                      </DialogHeader>
+                      <p className="text-sm text-slate-600">
+                        Compose a note to {vendor.name}. We&apos;ll relay through HoneyBook while keeping this thread updated.
+                      </p>
+                      <Textarea rows={5} placeholder={`Write a message to ${vendor.name}`} />
+                      <Button>Send via Tiny Diner concierge</Button>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </details>
+            ))}
           </div>
-        ))}
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+function VendorCard({ vendor }: { vendor: (typeof PREFERRED_VENDORS)[number]["vendors"][number] }) {
+  return (
+    <div className="space-y-2 rounded-lg border border-slate-200/80 bg-white/80 p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">{vendor.name}</p>
+          <p className="text-xs text-slate-500">{vendor.cost}</p>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline">Message</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Message {vendor.name}</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-slate-600">
+              Compose a note to {vendor.name}. We&apos;ll relay through HoneyBook while keeping this thread updated.
+            </p>
+            <Textarea rows={5} placeholder={`Write a message to ${vendor.name}`} />
+            <Button>Send via Tiny Diner concierge</Button>
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div className="text-xs text-slate-600">
+        <p>Email: {vendor.contact}</p>
+        <p>Phone: {vendor.phone}</p>
+      </div>
+      <p className="text-xs text-slate-500">{vendor.notes}</p>
+    </div>
   );
 }
 
