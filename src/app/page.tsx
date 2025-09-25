@@ -61,6 +61,10 @@ import { useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Logo } from "@/components/Logo";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { AuthDialog } from "@/components/auth/AuthDialog";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestoreDb } from "@/lib/firebase";
 
 const STREAMLINED_PACKAGE = {
   name: "Tiny Diner Signature",
@@ -311,6 +315,7 @@ const DEMO_CUSTOMER = {
 // Keep a reference (noop) ensuring bundlers treat it as used in development scenarios
 // DEMO_CUSTOMER will be used for initial prefill
 export default function TinyDinerApp() {
+  const { user } = useAuth();
   const [step, setStep] = useState<Step>("welcome");
   const [booking, setBooking] = useState<BookingState>({
     eventDate: null,
@@ -506,6 +511,42 @@ export default function TinyDinerApp() {
     ? booking.streamlinedSummary?.deposit ?? 0
     : booking.customEstimate?.deposit ?? 0;
 
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSaveEstimate = async () => {
+    setSaveError(null);
+    if (!user) {
+      setAuthDialogOpen(true);
+      return;
+    }
+    if (!booking.eventDate || !booking.planType) return;
+    setSaving(true);
+    try {
+      const db = getFirestoreDb();
+      const docRef = await addDoc(collection(db, "estimates"), {
+        uid: user.uid,
+        createdAt: serverTimestamp(),
+        eventDate: booking.eventDate.toISOString(),
+        planType: booking.planType,
+        client: booking.client,
+        estimate: booking.planType === "streamlined" ? booking.streamlinedSummary : booking.customEstimate,
+        customSelections: booking.planType === "custom" ? booking.customSelections : null,
+        messages: messages.map(m => ({ ...m, timestamp: m.timestamp.toISOString() })),
+      });
+      console.info("Saved estimate", docRef.id);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 4000);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to save";
+      setSaveError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-dvh bg-gradient-to-br from-[#f6f4f1] via-white to-[#f5fbff] text-slate-900 overflow-x-hidden">
       <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-10 px-4 sm:px-6 pb-20 pt-8 lg:pt-10">
@@ -513,6 +554,7 @@ export default function TinyDinerApp() {
         <div className="flex flex-col gap-8">
           <div className="space-y-4">
             <StepIndicator currentStep={step} setStep={setStep} />
+            <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} onAuthed={() => setAuthDialogOpen(false)} />
             
             {/* Guided Dialogs for each step */}
             <Dialog open={step === "calendar"} onOpenChange={() => { /* keep guided modal open */ }}>
@@ -842,6 +884,10 @@ export default function TinyDinerApp() {
                     processingPayment={isProcessingPayment}
                     totalEstimate={totalEstimate}
                     depositDue={depositDue}
+                    onSaveEstimate={handleSaveEstimate}
+                    saving={saving}
+                    saveSuccess={saveSuccess}
+                    saveError={saveError}
                   />
                 )}
               </DialogContent>
@@ -1012,6 +1058,10 @@ function ReviewDashboard({
   processingPayment,
   totalEstimate,
   depositDue,
+  onSaveEstimate,
+  saving,
+  saveSuccess,
+  saveError,
 }: {
   booking: BookingState;
   messages: Message[];
@@ -1022,6 +1072,10 @@ function ReviewDashboard({
   processingPayment: boolean;
   totalEstimate: number;
   depositDue: number;
+  onSaveEstimate: () => void;
+  saving: boolean;
+  saveSuccess: boolean;
+  saveError: string | null;
 }) {
   const [draftMessage, setDraftMessage] = useState("");
 
@@ -1154,6 +1208,13 @@ function ReviewDashboard({
               </CardContent>
               <CardFooter className="flex flex-wrap gap-3">
                 <Button
+                  variant="outline"
+                  onClick={onSaveEstimate}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : saveSuccess ? "Saved" : "Save estimate"}
+                </Button>
+                <Button
                   onClick={() => onStartPayment("ach")}
                   disabled={processingPayment}
                   className="bg-emerald-600 text-white hover:bg-emerald-700"
@@ -1171,6 +1232,9 @@ function ReviewDashboard({
                   Square handles payment processing. Funds post to Tiny Diner events account with automatic receipt.
                 </p>
               </CardFooter>
+              {saveError && (
+                <p className="px-6 pb-4 text-xs text-rose-600">{saveError}</p>
+              )}
             </Card>
 
             <Card className="border border-slate-200 bg-white/70">
