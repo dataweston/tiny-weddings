@@ -122,3 +122,17 @@
   }
 }
 
+/* Viewport height adjustments & scroll safety */
+html, body {
+  min-height: 100dvh; /* use dynamic viewport to avoid mobile URL bar issues */
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Utility: min-h-dvh (Tailwind upcoming pattern) */
+:root {
+  --vh: 1dvh;
+}
+.min-h-dvh { min-height: calc(var(--vh) * 100); }
+
+/* iOS Safari fallback updates the --vh variable via JS (optional) – left for future enhancement */
+

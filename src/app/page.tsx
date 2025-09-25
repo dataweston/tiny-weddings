@@ -515,8 +515,8 @@ export default function TinyDinerApp() {
     : booking.customEstimate?.deposit ?? 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f6f4f1] via-white to-[#f5fbff] text-slate-900">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 pb-16 pt-10">
+    <div className="min-h-dvh bg-gradient-to-br from-[#f6f4f1] via-white to-[#f5fbff] text-slate-900 overflow-x-hidden">
+      <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-10 px-4 sm:px-6 pb-20 pt-8 lg:pt-10">
         <HeaderSection booking={booking} />
         <div className="flex flex-col gap-8">
           <div className="space-y-4">
