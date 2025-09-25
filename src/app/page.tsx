@@ -299,6 +299,17 @@ const initialCustomSelections: CustomSelections = {
   officiant: "bring",
   notes: "",
 };
+
+// Demo mock customer details for showcase; replace with real user input handling in production
+const DEMO_CUSTOMER = {
+  primaryName: "Alex Rivera",
+  partnerName: "Jordan Lee",
+  email: "alex+jordan@example.com",
+  phone: "612-555-0199",
+  pronouns: "they/them",
+};
+// Keep a reference (noop) ensuring bundlers treat it as used in development scenarios
+void DEMO_CUSTOMER;
 export default function TinyDinerApp() {
   const [step, setStep] = useState<Step>("calendar");
   const [booking, setBooking] = useState<BookingState>({
