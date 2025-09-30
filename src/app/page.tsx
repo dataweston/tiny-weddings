@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   
   format,
@@ -31,7 +31,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -87,37 +87,198 @@ const STREAMLINED_DEPOSIT = Math.round(
   STREAMLINED_PACKAGE.price * STREAMLINED_PACKAGE.depositRate
 );
 
-const BASE_PRICING = {
-  venueFee: 2600,
-  perGuestFood: {
-    buffet: 62,
-    plated: 88,
-    appetizers: 42,
-  },
-  beveragePerGuest: {
-    wine: 26,
-    cocktails: 34,
-    na: 15,
-  },
-  bartenderFee: 150,
-  cake: {
-    need: 480,
-    bring: 0,
-  },
-  floral: {
-    inHouse: 780,
-    bring: 0,
-  },
-  coordinator: {
-    fullPlanning: 1500,
-    dayOf: 750,
-    none: 0,
-  },
-  officiant: {
-    provide: 450,
-    bring: 0,
-  },
+const VENUE_VENDOR = "Tiny Diner Venue & Staffing";
+const VENUE_BASE_RATE = 2600;
+
+type PricingType = "perGuest" | "flat";
+
+type ServiceOption<Value extends string = string> = {
+  value: Value;
+  title: string;
+  subtitle: string;
+  pricingType: PricingType;
+  defaultPrice: number;
+  vendorOverride?: string;
 };
+
+const FOOD_VENDOR = "Local Effort";
+const FOOD_OPTIONS = [
+  {
+    value: "buffet",
+    title: "Local Effort seasonal buffet",
+    subtitle: "Relaxed, grazing stations ideal for mingling",
+    pricingType: "perGuest",
+    defaultPrice: 62,
+  },
+  {
+    value: "plated",
+    title: "Local Effort plated dinner",
+    subtitle: "Coursed dining with full service team",
+    pricingType: "perGuest",
+    defaultPrice: 88,
+  },
+  {
+    value: "appetizers",
+    title: "Local Effort passed appetizers",
+    subtitle: "Cocktail-forward mix & mingle experience",
+    pricingType: "perGuest",
+    defaultPrice: 42,
+  },
+  {
+    value: "notRequired",
+    title: "Outside catering support",
+    subtitle: "Not required — facility support fee per guest",
+    pricingType: "perGuest",
+    defaultPrice: 12,
+    vendorOverride: "Tiny Diner Venue Support",
+  },
+] as const satisfies readonly ServiceOption[];
+
+const BEVERAGE_VENDOR = "Tiny Diner Beverage Collective";
+const BEVERAGE_OPTIONS = [
+  {
+    value: "wine",
+    title: "Beer, wine & NA bar",
+    subtitle: "Local selections plus coffee service",
+    pricingType: "perGuest",
+    defaultPrice: 26,
+  },
+  {
+    value: "cocktails",
+    title: "Signature cocktail program",
+    subtitle: "Custom drinks designed with our bar team",
+    pricingType: "perGuest",
+    defaultPrice: 34,
+  },
+  {
+    value: "na",
+    title: "Zero-proof service",
+    subtitle: "Craft sodas, shrubs, and espresso bar",
+    pricingType: "perGuest",
+    defaultPrice: 15,
+  },
+  {
+    value: "notRequired",
+    title: "Outside beverage program",
+    subtitle: "Not required — service oversight fee",
+    pricingType: "flat",
+    defaultPrice: 250,
+    vendorOverride: "Tiny Diner Venue Support",
+  },
+] as const satisfies readonly ServiceOption[];
+
+const CAKE_VENDOR = "Local Effort";
+const CAKE_OPTIONS = [
+  {
+    value: "need",
+    title: "Local Effort dessert table",
+    subtitle: "Layered buttercream cakes & sweets",
+    pricingType: "flat",
+    defaultPrice: 480,
+  },
+  {
+    value: "bring",
+    title: "Couple-provided desserts",
+    subtitle: "Storage & service support from our team",
+    pricingType: "flat",
+    defaultPrice: 180,
+    vendorOverride: "Tiny Diner Venue Support",
+  },
+  {
+    value: "notRequired",
+    title: "No dessert service",
+    subtitle: "Not required for this celebration",
+    pricingType: "flat",
+    defaultPrice: 0,
+  },
+] as const satisfies readonly ServiceOption[];
+
+const FLORAL_VENDOR = "Studio Emme";
+const FLORAL_OPTIONS = [
+  {
+    value: "inHouse",
+    title: "Studio Emme floral design",
+    subtitle: "Seasonal florals with candles and styling",
+    pricingType: "flat",
+    defaultPrice: 780,
+  },
+  {
+    value: "bring",
+    title: "Outside florist collaboration",
+    subtitle: "Timeline, setup, and breakdown coordination",
+    pricingType: "flat",
+    defaultPrice: 220,
+    vendorOverride: "Tiny Diner Venue Support",
+  },
+  {
+    value: "notRequired",
+    title: "Minimal styling only",
+    subtitle: "Not required — couple will keep decor simple",
+    pricingType: "flat",
+    defaultPrice: 0,
+  },
+] as const satisfies readonly ServiceOption[];
+
+const COORDINATOR_VENDOR = "Tiny Diner Experience Team";
+const COORDINATOR_OPTIONS = [
+  {
+    value: "fullPlanning",
+    title: "Full planning partnership",
+    subtitle: "12-week planning with design and logistics",
+    pricingType: "flat",
+    defaultPrice: 1500,
+  },
+  {
+    value: "dayOf",
+    title: "Day-of coordination",
+    subtitle: "Timeline management + vendor wrangling",
+    pricingType: "flat",
+    defaultPrice: 750,
+  },
+  {
+    value: "notRequired",
+    title: "Venue host handoff",
+    subtitle: "Not required — includes operations lead",
+    pricingType: "flat",
+    defaultPrice: 250,
+    vendorOverride: "Tiny Diner Venue Support",
+  },
+] as const satisfies readonly ServiceOption[];
+
+const OFFICIANT_VENDOR = "Tiny Diner Officiant Collective";
+const OFFICIANT_OPTIONS = [
+  {
+    value: "provide",
+    title: "Tiny Diner officiant",
+    subtitle: "Inclusive scripts + rehearsal support",
+    pricingType: "flat",
+    defaultPrice: 450,
+  },
+  {
+    value: "bring",
+    title: "Couple-provided officiant",
+    subtitle: "Timeline coordination & mic check",
+    pricingType: "flat",
+    defaultPrice: 180,
+    vendorOverride: "Tiny Diner Venue Support",
+  },
+  {
+    value: "notRequired",
+    title: "No officiant support",
+    subtitle: "Not required for this event",
+    pricingType: "flat",
+    defaultPrice: 0,
+  },
+] as const satisfies readonly ServiceOption[];
+
+function getDefaultPrice(options: readonly ServiceOption[], value: string) {
+  const option = options.find((item) => item.value === value);
+  return option ? option.defaultPrice : options[0]?.defaultPrice ?? 0;
+}
+
+function getOptionByValue<T extends ServiceOption>(options: readonly T[], value: string): T {
+  return (options.find((item) => item.value === value) ?? options[0]) as T;
+}
 
 const PREFERRED_VENDORS = [
   {
@@ -143,9 +304,9 @@ const PREFERRED_VENDORS = [
     category: "Culinary & Beverage",
     vendors: [
       {
-        name: "Tiny Diner Kitchen",
+        name: "Local Effort",
         cost: "$62-$88 per guest",
-        contact: "chef@tinydiner.com",
+        contact: "events@localeffort.com",
         phone: "612-555-0105",
         notes: "Seasonal menus with vegetarian & vegan highlights",
       },
@@ -226,14 +387,27 @@ type Step = "welcome" | "calendar" | "contact" | "plan" | "custom" | "review";
 
 type PlanType = "streamlined" | "custom" | null;
 
+type FoodStyle = (typeof FOOD_OPTIONS)[number]["value"];
+type BeverageChoice = (typeof BEVERAGE_OPTIONS)[number]["value"];
+type CakeChoice = (typeof CAKE_OPTIONS)[number]["value"];
+type FloralChoice = (typeof FLORAL_OPTIONS)[number]["value"];
+type CoordinatorChoice = (typeof COORDINATOR_OPTIONS)[number]["value"];
+type OfficiantChoice = (typeof OFFICIANT_OPTIONS)[number]["value"];
+
 type CustomSelections = {
   guestCount: number;
-  foodStyle: "buffet" | "plated" | "appetizers";
-  beverage: "wine" | "cocktails" | "na";
-  cake: "need" | "bring";
-  floral: "inHouse" | "bring";
-  coordinator: "fullPlanning" | "dayOf" | "none";
-  officiant: "provide" | "bring";
+  foodStyle: FoodStyle;
+  beverage: BeverageChoice;
+  cake: CakeChoice;
+  floral: FloralChoice;
+  coordinator: CoordinatorChoice;
+  officiant: OfficiantChoice;
+  foodPrice: number;
+  beveragePrice: number;
+  cakePrice: number;
+  floralPrice: number;
+  coordinatorPrice: number;
+  officiantPrice: number;
   notes: string;
 };
 
@@ -242,6 +416,12 @@ type Message = {
   sender: "Client" | "Tiny Diner";
   body: string;
   timestamp: Date;
+};
+
+type EstimateLineItem = {
+  label: string;
+  amount: number;
+  vendor?: string;
 };
 
 type BookingState = {
@@ -260,7 +440,7 @@ type BookingState = {
   };
   customSelections: CustomSelections;
   customEstimate?: {
-    lineItems: { label: string; amount: number }[];
+    lineItems: EstimateLineItem[];
     total: number;
     deposit: number;
   };
@@ -281,12 +461,18 @@ const customSchema = z.object({
     .number()
     .min(10, "Minimum 10 guests")
     .max(120, "Tiny Diner max 120"),
-  foodStyle: z.enum(["buffet", "plated", "appetizers"]),
-  beverage: z.enum(["wine", "cocktails", "na"]),
-  cake: z.enum(["need", "bring"]),
-  floral: z.enum(["inHouse", "bring"]),
-  coordinator: z.enum(["fullPlanning", "dayOf", "none"]),
-  officiant: z.enum(["provide", "bring"]),
+  foodStyle: z.enum(["buffet", "plated", "appetizers", "notRequired"]),
+  beverage: z.enum(["wine", "cocktails", "na", "notRequired"]),
+  cake: z.enum(["need", "bring", "notRequired"]),
+  floral: z.enum(["inHouse", "bring", "notRequired"]),
+  coordinator: z.enum(["fullPlanning", "dayOf", "notRequired"]),
+  officiant: z.enum(["provide", "bring", "notRequired"]),
+  foodPrice: z.coerce.number().min(0, "Please enter a non-negative amount"),
+  beveragePrice: z.coerce.number().min(0, "Please enter a non-negative amount"),
+  cakePrice: z.coerce.number().min(0, "Please enter a non-negative amount"),
+  floralPrice: z.coerce.number().min(0, "Please enter a non-negative amount"),
+  coordinatorPrice: z.coerce.number().min(0, "Please enter a non-negative amount"),
+  officiantPrice: z.coerce.number().min(0, "Please enter a non-negative amount"),
   notes: z
     .string()
     .max(1000, "Please keep notes under 1000 characters")
@@ -295,13 +481,19 @@ const customSchema = z.object({
 });
 
 const initialCustomSelections: CustomSelections = {
-  guestCount: 80,
+  guestCount: 35,
   foodStyle: "buffet",
   beverage: "wine",
   cake: "need",
   floral: "inHouse",
   coordinator: "dayOf",
   officiant: "bring",
+  foodPrice: getDefaultPrice(FOOD_OPTIONS, "buffet"),
+  beveragePrice: getDefaultPrice(BEVERAGE_OPTIONS, "wine"),
+  cakePrice: getDefaultPrice(CAKE_OPTIONS, "need"),
+  floralPrice: getDefaultPrice(FLORAL_OPTIONS, "inHouse"),
+  coordinatorPrice: getDefaultPrice(COORDINATOR_OPTIONS, "dayOf"),
+  officiantPrice: getDefaultPrice(OFFICIANT_OPTIONS, "bring"),
   notes: "",
 };
 
@@ -356,9 +548,72 @@ export default function TinyDinerApp() {
       floral: initialCustomSelections.floral,
       coordinator: initialCustomSelections.coordinator,
       officiant: initialCustomSelections.officiant,
+      foodPrice: initialCustomSelections.foodPrice,
+      beveragePrice: initialCustomSelections.beveragePrice,
+      cakePrice: initialCustomSelections.cakePrice,
+      floralPrice: initialCustomSelections.floralPrice,
+      coordinatorPrice: initialCustomSelections.coordinatorPrice,
+      officiantPrice: initialCustomSelections.officiantPrice,
       notes: initialCustomSelections.notes,
     },
   });
+
+  const watchedFoodStyle = customForm.watch("foodStyle");
+  const watchedBeverage = customForm.watch("beverage");
+  const watchedCake = customForm.watch("cake");
+  const watchedFloral = customForm.watch("floral");
+  const watchedCoordinator = customForm.watch("coordinator");
+  const watchedOfficiant = customForm.watch("officiant");
+
+  useEffect(() => {
+    const option = getOptionByValue(FOOD_OPTIONS, watchedFoodStyle);
+    if (customForm.getValues("foodPrice") !== option.defaultPrice) {
+      customForm.setValue("foodPrice", option.defaultPrice, { shouldDirty: false });
+    }
+  }, [watchedFoodStyle, customForm]);
+
+  useEffect(() => {
+    const option = getOptionByValue(BEVERAGE_OPTIONS, watchedBeverage);
+    if (customForm.getValues("beveragePrice") !== option.defaultPrice) {
+      customForm.setValue("beveragePrice", option.defaultPrice, { shouldDirty: false });
+    }
+  }, [watchedBeverage, customForm]);
+
+  useEffect(() => {
+    const option = getOptionByValue(CAKE_OPTIONS, watchedCake);
+    if (customForm.getValues("cakePrice") !== option.defaultPrice) {
+      customForm.setValue("cakePrice", option.defaultPrice, { shouldDirty: false });
+    }
+  }, [watchedCake, customForm]);
+
+  useEffect(() => {
+    const option = getOptionByValue(FLORAL_OPTIONS, watchedFloral);
+    if (customForm.getValues("floralPrice") !== option.defaultPrice) {
+      customForm.setValue("floralPrice", option.defaultPrice, { shouldDirty: false });
+    }
+  }, [watchedFloral, customForm]);
+
+  useEffect(() => {
+    const option = getOptionByValue(COORDINATOR_OPTIONS, watchedCoordinator);
+    if (customForm.getValues("coordinatorPrice") !== option.defaultPrice) {
+      customForm.setValue("coordinatorPrice", option.defaultPrice, { shouldDirty: false });
+    }
+  }, [watchedCoordinator, customForm]);
+
+  useEffect(() => {
+    const option = getOptionByValue(OFFICIANT_OPTIONS, watchedOfficiant);
+    if (customForm.getValues("officiantPrice") !== option.defaultPrice) {
+      customForm.setValue("officiantPrice", option.defaultPrice, { shouldDirty: false });
+    }
+  }, [watchedOfficiant, customForm]);
+
+  const foodOptionMeta = getOptionByValue(FOOD_OPTIONS, watchedFoodStyle);
+  const beverageOptionMeta = getOptionByValue(BEVERAGE_OPTIONS, watchedBeverage);
+  const cakeOptionMeta = getOptionByValue(CAKE_OPTIONS, watchedCake);
+  const floralOptionMeta = getOptionByValue(FLORAL_OPTIONS, watchedFloral);
+  const coordinatorOptionMeta = getOptionByValue(COORDINATOR_OPTIONS, watchedCoordinator);
+  const officiantOptionMeta = getOptionByValue(OFFICIANT_OPTIONS, watchedOfficiant);
+  const liveCustomValues = customForm.watch();
 
   const calendarDisabledDays = useCallback((date: Date) => {
     const normalized = startOfDay(date);
@@ -409,9 +664,7 @@ export default function TinyDinerApp() {
   };
 
   const handleCustomSubmit = customForm.handleSubmit((values) => {
-    const nextSelections: CustomSelections = {
-      ...values,
-    };
+    const nextSelections = normalizeCustomSelections(values);
 
     const estimate = buildCustomEstimate(nextSelections);
 
@@ -736,137 +989,400 @@ export default function TinyDinerApp() {
                   <DialogTitle className="text-2xl">Customize your celebration</DialogTitle>
                 </DialogHeader>
                 <Form {...customForm}>
-                  <form className="grid gap-6" onSubmit={handleCustomSubmit}>
-                    <FormField
-                      control={customForm.control}
-                      name="guestCount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Guest count</FormLabel>
-                          <Input type="number" min={10} max={120} {...field} />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid gap-4 md:grid-cols-2">
+                  <form className="grid gap-6 lg:grid-cols-[1.35fr_1fr]" onSubmit={handleCustomSubmit}>
+                    <div className="space-y-6">
                       <FormField
                         control={customForm.control}
-                        name="foodStyle"
+                        name="guestCount"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Dining style</FormLabel>
-                            <RadioGroup
-                              className="grid gap-3"
-                              onValueChange={field.onChange}
-                              value={field.value}
-                            >
-                              <OptionCard value="buffet" title="Seasonal buffet" subtitle="Best for relaxed flow" />
-                              <OptionCard value="plated" title="Coursed & plated" subtitle="Elevated dining with staffing" />
-                              <OptionCard value="appetizers" title="Passed appetizers" subtitle="Cocktail-forward mix & mingle" />
-                            </RadioGroup>
+                            <FormLabel>Guest count</FormLabel>
+                            <Input type="number" min={10} max={120} {...field} />
+                            <FormDescription>Defaults to our intimate gathering size of 35 guests.</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
 
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-4">
+                          <FormField
+                            control={customForm.control}
+                            name="foodStyle"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Dining style</FormLabel>
+                                <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                                  {FOOD_OPTIONS.map((option) => (
+                                    <OptionCard
+                                      key={option.value}
+                                      value={option.value}
+                                      title={option.title}
+                                      subtitle={option.subtitle}
+                                      hint={option.pricingType === "perGuest"
+                                        ? `$${option.defaultPrice.toLocaleString()} per guest`
+                                        : `$${option.defaultPrice.toLocaleString()} flat`}
+                                    />
+                                  ))}
+                                </RadioGroup>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={customForm.control}
+                            name="foodPrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center justify-between gap-2">
+                                  <FormLabel>
+                                    {foodOptionMeta.pricingType === "perGuest" ? "Price per guest" : "Package price"}
+                                  </FormLabel>
+                                  <Button
+                                    type="button"
+                                    variant="link"
+                                    className="h-auto px-0 text-xs"
+                                    onClick={() => customForm.setValue("foodPrice", foodOptionMeta.defaultPrice, { shouldDirty: false })}
+                                  >
+                                    Reset to default
+                                  </Button>
+                                </div>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={foodOptionMeta.pricingType === "perGuest" ? 1 : 10}
+                                  value={field.value ?? 0}
+                                  onChange={(event) => {
+                                    const next = event.target.valueAsNumber;
+                                    field.onChange(Number.isNaN(next) ? 0 : next);
+                                  }}
+                                />
+                                <FormDescription>
+                                  Default: ${foodOptionMeta.defaultPrice.toLocaleString()} {foodOptionMeta.pricingType === "perGuest" ? "per guest" : "flat"} with {foodOptionMeta.vendorOverride ?? FOOD_VENDOR}.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="space-y-4">
+                          <FormField
+                            control={customForm.control}
+                            name="beverage"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Beverage</FormLabel>
+                                <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                                  {BEVERAGE_OPTIONS.map((option) => (
+                                    <OptionCard
+                                      key={option.value}
+                                      value={option.value}
+                                      title={option.title}
+                                      subtitle={option.subtitle}
+                                      hint={option.pricingType === "perGuest"
+                                        ? `$${option.defaultPrice.toLocaleString()} per guest`
+                                        : `$${option.defaultPrice.toLocaleString()} flat`}
+                                    />
+                                  ))}
+                                </RadioGroup>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={customForm.control}
+                            name="beveragePrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center justify-between gap-2">
+                                  <FormLabel>
+                                    {beverageOptionMeta.pricingType === "perGuest" ? "Price per guest" : "Service fee"}
+                                  </FormLabel>
+                                  <Button
+                                    type="button"
+                                    variant="link"
+                                    className="h-auto px-0 text-xs"
+                                    onClick={() => customForm.setValue("beveragePrice", beverageOptionMeta.defaultPrice, { shouldDirty: false })}
+                                  >
+                                    Reset to default
+                                  </Button>
+                                </div>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={beverageOptionMeta.pricingType === "perGuest" ? 1 : 10}
+                                  value={field.value ?? 0}
+                                  onChange={(event) => {
+                                    const next = event.target.valueAsNumber;
+                                    field.onChange(Number.isNaN(next) ? 0 : next);
+                                  }}
+                                />
+                                <FormDescription>
+                                  Default: ${beverageOptionMeta.defaultPrice.toLocaleString()} {beverageOptionMeta.pricingType === "perGuest" ? "per guest" : "flat"} with {beverageOptionMeta.vendorOverride ?? BEVERAGE_VENDOR}.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-4">
+                          <FormField
+                            control={customForm.control}
+                            name="cake"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Cake or dessert</FormLabel>
+                                <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                                  {CAKE_OPTIONS.map((option) => (
+                                    <OptionCard
+                                      key={option.value}
+                                      value={option.value}
+                                      title={option.title}
+                                      subtitle={option.subtitle}
+                                      hint={`$${option.defaultPrice.toLocaleString()} ${option.pricingType === "perGuest" ? "per guest" : "flat"}`}
+                                    />
+                                  ))}
+                                </RadioGroup>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={customForm.control}
+                            name="cakePrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center justify-between gap-2">
+                                  <FormLabel>Package price</FormLabel>
+                                  <Button
+                                    type="button"
+                                    variant="link"
+                                    className="h-auto px-0 text-xs"
+                                    onClick={() => customForm.setValue("cakePrice", cakeOptionMeta.defaultPrice, { shouldDirty: false })}
+                                  >
+                                    Reset to default
+                                  </Button>
+                                </div>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={10}
+                                  value={field.value ?? 0}
+                                  onChange={(event) => {
+                                    const next = event.target.valueAsNumber;
+                                    field.onChange(Number.isNaN(next) ? 0 : next);
+                                  }}
+                                />
+                                <FormDescription>
+                                  Default: ${cakeOptionMeta.defaultPrice.toLocaleString()} flat with {cakeOptionMeta.vendorOverride ?? CAKE_VENDOR}.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="space-y-4">
+                          <FormField
+                            control={customForm.control}
+                            name="floral"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Floral & decor</FormLabel>
+                                <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                                  {FLORAL_OPTIONS.map((option) => (
+                                    <OptionCard
+                                      key={option.value}
+                                      value={option.value}
+                                      title={option.title}
+                                      subtitle={option.subtitle}
+                                      hint={`$${option.defaultPrice.toLocaleString()} ${option.pricingType === "perGuest" ? "per guest" : "flat"}`}
+                                    />
+                                  ))}
+                                </RadioGroup>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={customForm.control}
+                            name="floralPrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center justify-between gap-2">
+                                  <FormLabel>Package price</FormLabel>
+                                  <Button
+                                    type="button"
+                                    variant="link"
+                                    className="h-auto px-0 text-xs"
+                                    onClick={() => customForm.setValue("floralPrice", floralOptionMeta.defaultPrice, { shouldDirty: false })}
+                                  >
+                                    Reset to default
+                                  </Button>
+                                </div>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={10}
+                                  value={field.value ?? 0}
+                                  onChange={(event) => {
+                                    const next = event.target.valueAsNumber;
+                                    field.onChange(Number.isNaN(next) ? 0 : next);
+                                  }}
+                                />
+                                <FormDescription>
+                                  Default: ${floralOptionMeta.defaultPrice.toLocaleString()} flat with {floralOptionMeta.vendorOverride ?? FLORAL_VENDOR}.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-4">
+                          <FormField
+                            control={customForm.control}
+                            name="coordinator"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Coordination support</FormLabel>
+                                <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                                  {COORDINATOR_OPTIONS.map((option) => (
+                                    <OptionCard
+                                      key={option.value}
+                                      value={option.value}
+                                      title={option.title}
+                                      subtitle={option.subtitle}
+                                      hint={`$${option.defaultPrice.toLocaleString()} ${option.pricingType === "perGuest" ? "per guest" : "flat"}`}
+                                    />
+                                  ))}
+                                </RadioGroup>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={customForm.control}
+                            name="coordinatorPrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center justify-between gap-2">
+                                  <FormLabel>Package price</FormLabel>
+                                  <Button
+                                    type="button"
+                                    variant="link"
+                                    className="h-auto px-0 text-xs"
+                                    onClick={() => customForm.setValue("coordinatorPrice", coordinatorOptionMeta.defaultPrice, { shouldDirty: false })}
+                                  >
+                                    Reset to default
+                                  </Button>
+                                </div>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={10}
+                                  value={field.value ?? 0}
+                                  onChange={(event) => {
+                                    const next = event.target.valueAsNumber;
+                                    field.onChange(Number.isNaN(next) ? 0 : next);
+                                  }}
+                                />
+                                <FormDescription>
+                                  Default: ${coordinatorOptionMeta.defaultPrice.toLocaleString()} flat with {coordinatorOptionMeta.vendorOverride ?? COORDINATOR_VENDOR}.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="space-y-4">
+                          <FormField
+                            control={customForm.control}
+                            name="officiant"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Officiant</FormLabel>
+                                <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
+                                  {OFFICIANT_OPTIONS.map((option) => (
+                                    <OptionCard
+                                      key={option.value}
+                                      value={option.value}
+                                      title={option.title}
+                                      subtitle={option.subtitle}
+                                      hint={`$${option.defaultPrice.toLocaleString()} ${option.pricingType === "perGuest" ? "per guest" : "flat"}`}
+                                    />
+                                  ))}
+                                </RadioGroup>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={customForm.control}
+                            name="officiantPrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center justify-between gap-2">
+                                  <FormLabel>Package price</FormLabel>
+                                  <Button
+                                    type="button"
+                                    variant="link"
+                                    className="h-auto px-0 text-xs"
+                                    onClick={() => customForm.setValue("officiantPrice", officiantOptionMeta.defaultPrice, { shouldDirty: false })}
+                                  >
+                                    Reset to default
+                                  </Button>
+                                </div>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={10}
+                                  value={field.value ?? 0}
+                                  onChange={(event) => {
+                                    const next = event.target.valueAsNumber;
+                                    field.onChange(Number.isNaN(next) ? 0 : next);
+                                  }}
+                                />
+                                <FormDescription>
+                                  Default: ${officiantOptionMeta.defaultPrice.toLocaleString()} flat with {officiantOptionMeta.vendorOverride ?? OFFICIANT_VENDOR}.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+
                       <FormField
                         control={customForm.control}
-                        name="beverage"
+                        name="notes"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Beverage</FormLabel>
-                            <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
-                              <OptionCard value="wine" title="Beer, wine & NA" subtitle="Local selections + coffee service" />
-                              <OptionCard value="cocktails" title="Signature cocktails" subtitle="Custom cocktail design + bartender" />
-                              <OptionCard value="na" title="Zero-proof" subtitle="Craft sodas, shrubs, espresso" />
-                            </RadioGroup>
+                            <FormLabel>Anything else we should know?</FormLabel>
+                            <Textarea placeholder="Tell us about your vision, must-haves, or accessibility notes." rows={4} {...field} />
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <Button type="button" variant="outline" onClick={() => setStep("plan")}>Back</Button>
+                        <Button type="submit" className="sm:min-w-[10rem]">Review estimate</Button>
+                      </div>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
-                        control={customForm.control}
-                        name="cake"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cake or dessert</FormLabel>
-                            <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
-                              <OptionCard value="need" title="We need Tiny Diner to provide" subtitle="Layered buttercream cakes & dessert table" />
-                              <OptionCard value="bring" title="We&apos;ll bring our own" subtitle="Storage & service support included" />
-                            </RadioGroup>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={customForm.control}
-                        name="floral"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Floral & decor</FormLabel>
-                            <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
-                              <OptionCard value="inHouse" title="Curated by Tiny Diner" subtitle="Partner florists with signature palette" />
-                              <OptionCard value="bring" title="We&apos;ll collaborate with our florist" subtitle="Space walk-through included" />
-                            </RadioGroup>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
-                        control={customForm.control}
-                        name="coordinator"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Coordination support</FormLabel>
-                            <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
-                              <OptionCard value="fullPlanning" title="Planning in advance" subtitle="12-week planning partnership" />
-                              <OptionCard value="dayOf" title="Day-of lead" subtitle="Timeline, vendors, and onsite management" />
-                              <OptionCard value="none" title="We have our own" subtitle="We&apos;ll still provide Tiny Diner host" />
-                            </RadioGroup>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={customForm.control}
-                        name="officiant"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Officiant</FormLabel>
-                            <RadioGroup className="grid gap-3" onValueChange={field.onChange} value={field.value}>
-                              <OptionCard value="provide" title="Tiny Diner officiant" subtitle="Inclusive ceremony scripts + rehearsal" />
-                              <OptionCard value="bring" title="We&apos;ll bring our own" subtitle="We&apos;ll coordinate timeline + mic" />
-                            </RadioGroup>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={customForm.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Anything else we should know?</FormLabel>
-                          <Textarea placeholder="Tell us about your vision, must-haves, or accessibility notes." rows={4} {...field} />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="flex justify-between gap-3">
-                      <Button type="button" variant="outline" onClick={() => setStep("plan")}>Back</Button>
-                      <Button type="submit">Review estimate</Button>
+                    <div className="space-y-4 lg:sticky lg:top-6">
+                      <CustomPlanCalculator values={liveCustomValues} />
+                      <p className="text-xs text-slate-500">
+                        Adjust any package pricing to see the live vendor breakdown update instantly.
+                      </p>
                     </div>
                   </form>
                 </Form>
@@ -1033,10 +1549,12 @@ function OptionCard({
   value,
   title,
   subtitle,
+  hint,
 }: {
   value: string;
   title: string;
   subtitle: string;
+  hint?: string;
 }) {
   return (
     <Label
@@ -1047,12 +1565,100 @@ function OptionCard({
         <div>
           <p className="font-semibold text-slate-800">{title}</p>
           <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+          {hint && <p className="mt-1 text-[0.7rem] uppercase tracking-wide text-rose-500">{hint}</p>}
         </div>
         <RadioGroupItem value={value} id={value} className="border-rose-500 text-rose-500" />
       </div>
     </Label>
   );
 }
+function normalizeCustomSelections(values: Partial<CustomSelections>): CustomSelections {
+  const guestCount = typeof values.guestCount === "number" && Number.isFinite(values.guestCount)
+    ? Math.max(10, Math.min(120, Math.round(values.guestCount)))
+    : initialCustomSelections.guestCount;
+
+  const foodStyle = values.foodStyle ?? initialCustomSelections.foodStyle;
+  const beverage = values.beverage ?? initialCustomSelections.beverage;
+  const cake = values.cake ?? initialCustomSelections.cake;
+  const floral = values.floral ?? initialCustomSelections.floral;
+  const coordinator = values.coordinator ?? initialCustomSelections.coordinator;
+  const officiant = values.officiant ?? initialCustomSelections.officiant;
+
+  const ensureAmount = (
+    amount: unknown,
+    options: readonly ServiceOption[],
+    value: string,
+  ) => {
+    if (typeof amount !== "number" || Number.isNaN(amount)) {
+      return getOptionByValue(options, value).defaultPrice;
+    }
+    return Math.max(0, amount);
+  };
+
+  return {
+    guestCount,
+    foodStyle,
+    beverage,
+    cake,
+    floral,
+    coordinator,
+    officiant,
+    foodPrice: ensureAmount(values.foodPrice, FOOD_OPTIONS, foodStyle),
+    beveragePrice: ensureAmount(values.beveragePrice, BEVERAGE_OPTIONS, beverage),
+    cakePrice: ensureAmount(values.cakePrice, CAKE_OPTIONS, cake),
+    floralPrice: ensureAmount(values.floralPrice, FLORAL_OPTIONS, floral),
+    coordinatorPrice: ensureAmount(values.coordinatorPrice, COORDINATOR_OPTIONS, coordinator),
+    officiantPrice: ensureAmount(values.officiantPrice, OFFICIANT_OPTIONS, officiant),
+    notes: typeof values.notes === "string" ? values.notes : "",
+  };
+}
+
+function CustomPlanCalculator({ values }: { values: Partial<CustomSelections> }) {
+  const selections = normalizeCustomSelections(values);
+  const estimate = buildCustomEstimate(selections);
+
+  return (
+    <Card className="border border-slate-200 bg-white/80 shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-lg text-slate-800">Estimate calculator</CardTitle>
+        <CardDescription>Vendor-by-vendor breakdown</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between text-sm text-slate-600">
+          <span>Guest count</span>
+          <span className="font-medium text-slate-900">{selections.guestCount}</span>
+        </div>
+        <Separator />
+        <div className="space-y-3">
+          {estimate.lineItems.map((item) => (
+            <div
+              key={`${item.vendor ?? item.label}-${item.label}`}
+              className="flex items-start justify-between gap-3"
+            >
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{item.vendor ?? item.label}</p>
+                {item.vendor && <p className="text-xs text-slate-500">{item.label}</p>}
+              </div>
+              <p className="text-sm font-semibold text-slate-900">${item.amount.toLocaleString()}</p>
+            </div>
+          ))}
+        </div>
+        <Separator />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+            <span>Total</span>
+            <span>${estimate.total.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-slate-600">
+            <span>Deposit (25%)</span>
+            <span>${estimate.deposit.toLocaleString()}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ReviewDashboard({
   booking,
   messages,
@@ -1088,7 +1694,7 @@ function ReviewDashboard({
     booking.planType === "streamlined"
       ? STREAMLINED_PACKAGE.inclusions.map((item) => ({ label: item }))
       : booking.customEstimate?.lineItems.map((item) => ({
-          label: item.label,
+          label: item.vendor ? `${item.vendor} · ${item.label}` : item.label,
           amount: item.amount,
         })) ?? [];
 
@@ -1154,7 +1760,9 @@ function ReviewDashboard({
                     <p className="text-xs text-emerald-700/70">
                       {booking.planType === "streamlined"
                         ? `${STREAMLINED_PACKAGE.inclusions.length} curated inclusions`
-                        : `${booking.customSelections.guestCount} guests · ${readableFood(booking.customSelections.foodStyle)} dining`}
+                        : booking.customSelections.foodStyle === "notRequired"
+                          ? `${booking.customSelections.guestCount} guests · outside catering`
+                          : `${booking.customSelections.guestCount} guests · ${readableFood(booking.customSelections.foodStyle)} dining`}
                     </p>
                   </div>
                 </div>
@@ -1523,35 +2131,49 @@ function readableFood(style: CustomSelections["foodStyle"]) {
       return "plated";
     case "appetizers":
       return "passed apps";
+    case "notRequired":
+      return "outside catering";
     default:
       return style;
   }
 }
 function buildCustomEstimate(selections: CustomSelections) {
-  const guestCount = selections.guestCount;
-  const lineItems: { label: string; amount: number }[] = [];
+  const guestCount = Math.max(10, Math.round(selections.guestCount));
+  const lineItems: EstimateLineItem[] = [];
 
-  lineItems.push({ label: "Venue + staffing", amount: BASE_PRICING.venueFee });
-  const foodAmount = Math.round(BASE_PRICING.perGuestFood[selections.foodStyle] * guestCount);
   lineItems.push({
-    label: `${readableFood(selections.foodStyle)} dining (${guestCount} guests)`,
-    amount: foodAmount,
+    vendor: VENUE_VENDOR,
+    label: "Venue reservation & staffing",
+    amount: VENUE_BASE_RATE,
   });
 
-  const beverageAmount = Math.round(BASE_PRICING.beveragePerGuest[selections.beverage] * guestCount);
-  lineItems.push({
-    label: `${beverageLabel(selections.beverage)} (${guestCount} guests)`,
-    amount: beverageAmount,
-  });
+  const addServiceLine = (
+    options: readonly ServiceOption[],
+    vendorDefault: string,
+    value: string,
+    price: number,
+  ) => {
+    const option = getOptionByValue(options, value);
+    const sanitizedPrice = Math.max(0, price);
+    const amount = Math.round(
+      option.pricingType === "perGuest" ? sanitizedPrice * guestCount : sanitizedPrice,
+    );
+    lineItems.push({
+      vendor: option.vendorOverride ?? vendorDefault,
+      label:
+        option.pricingType === "perGuest"
+          ? `${option.title} (${guestCount} guests)`
+          : option.title,
+      amount,
+    });
+  };
 
-  if (selections.beverage !== "na") {
-    lineItems.push({ label: "Bartender team", amount: BASE_PRICING.bartenderFee });
-  }
-
-  lineItems.push({ label: cakeLabel(selections.cake), amount: BASE_PRICING.cake[selections.cake] });
-  lineItems.push({ label: floralLabel(selections.floral), amount: BASE_PRICING.floral[selections.floral] });
-  lineItems.push({ label: coordinatorLabel(selections.coordinator), amount: BASE_PRICING.coordinator[selections.coordinator] });
-  lineItems.push({ label: officiantLabel(selections.officiant), amount: BASE_PRICING.officiant[selections.officiant] });
+  addServiceLine(FOOD_OPTIONS, FOOD_VENDOR, selections.foodStyle, selections.foodPrice);
+  addServiceLine(BEVERAGE_OPTIONS, BEVERAGE_VENDOR, selections.beverage, selections.beveragePrice);
+  addServiceLine(CAKE_OPTIONS, CAKE_VENDOR, selections.cake, selections.cakePrice);
+  addServiceLine(FLORAL_OPTIONS, FLORAL_VENDOR, selections.floral, selections.floralPrice);
+  addServiceLine(COORDINATOR_OPTIONS, COORDINATOR_VENDOR, selections.coordinator, selections.coordinatorPrice);
+  addServiceLine(OFFICIANT_OPTIONS, OFFICIANT_VENDOR, selections.officiant, selections.officiantPrice);
 
   const total = lineItems.reduce((sum, item) => sum + item.amount, 0);
   const deposit = Math.round(total * 0.25);
@@ -1561,44 +2183,6 @@ function buildCustomEstimate(selections: CustomSelections) {
     total,
     deposit,
   };
-}
-
-function beverageLabel(beverage: CustomSelections["beverage"]) {
-  switch (beverage) {
-    case "wine":
-      return "Beer, wine & NA service";
-    case "cocktails":
-      return "Signature cocktail program";
-    case "na":
-      return "Zero-proof beverage service";
-    default:
-      return "Beverage";
-  }
-}
-
-function cakeLabel(cake: CustomSelections["cake"]) {
-  return cake === "need" ? "Tiny Diner desserts" : "Client-provided desserts";
-}
-
-function floralLabel(option: CustomSelections["floral"]) {
-  return option === "inHouse" ? "Tiny Diner floral & tablescape" : "External florist support";
-}
-
-function coordinatorLabel(option: CustomSelections["coordinator"]) {
-  switch (option) {
-    case "fullPlanning":
-      return "Full planning partnership";
-    case "dayOf":
-      return "Day-of coordination";
-    case "none":
-      return "External coordinator";
-    default:
-      return "Coordination";
-  }
-}
-
-function officiantLabel(option: CustomSelections["officiant"]) {
-  return option === "provide" ? "Tiny Diner officiant" : "Client-provided officiant";
 }
 
 function isoDateStringToMidnightDate(iso: string): Date {
