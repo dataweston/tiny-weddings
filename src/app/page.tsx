@@ -607,12 +607,12 @@ export default function TinyDinerApp() {
     }
   }, [watchedOfficiant, customForm]);
 
-  const foodOptionMeta = getOptionByValue(FOOD_OPTIONS, watchedFoodStyle);
-  const beverageOptionMeta = getOptionByValue(BEVERAGE_OPTIONS, watchedBeverage);
-  const cakeOptionMeta = getOptionByValue(CAKE_OPTIONS, watchedCake);
-  const floralOptionMeta = getOptionByValue(FLORAL_OPTIONS, watchedFloral);
-  const coordinatorOptionMeta = getOptionByValue(COORDINATOR_OPTIONS, watchedCoordinator);
-  const officiantOptionMeta = getOptionByValue(OFFICIANT_OPTIONS, watchedOfficiant);
+  const foodOptionMeta: ServiceOption = getOptionByValue(FOOD_OPTIONS, watchedFoodStyle);
+  const beverageOptionMeta: ServiceOption = getOptionByValue(BEVERAGE_OPTIONS, watchedBeverage);
+  const cakeOptionMeta: ServiceOption = getOptionByValue(CAKE_OPTIONS, watchedCake);
+  const floralOptionMeta: ServiceOption = getOptionByValue(FLORAL_OPTIONS, watchedFloral);
+  const coordinatorOptionMeta: ServiceOption = getOptionByValue(COORDINATOR_OPTIONS, watchedCoordinator);
+  const officiantOptionMeta: ServiceOption = getOptionByValue(OFFICIANT_OPTIONS, watchedOfficiant);
   const liveCustomValues = customForm.watch();
 
   const calendarDisabledDays = useCallback((date: Date) => {
