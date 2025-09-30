@@ -101,6 +101,11 @@ type ServiceOption<Value extends string = string> = {
   vendorOverride?: string;
 };
 
+const formatPricingHint = (option: ServiceOption) =>
+  `$${option.defaultPrice.toLocaleString()} ${
+    option.pricingType === "perGuest" ? "per guest" : "flat"
+  }`;
+
 const FOOD_VENDOR = "Local Effort";
 const FOOD_OPTIONS = [
   {
@@ -1019,9 +1024,7 @@ export default function TinyDinerApp() {
                                       value={option.value}
                                       title={option.title}
                                       subtitle={option.subtitle}
-                                      hint={option.pricingType === "perGuest"
-                                        ? `$${option.defaultPrice.toLocaleString()} per guest`
-                                        : `$${option.defaultPrice.toLocaleString()} flat`}
+                                      hint={formatPricingHint(option)}
                                     />
                                   ))}
                                 </RadioGroup>
@@ -1080,9 +1083,7 @@ export default function TinyDinerApp() {
                                       value={option.value}
                                       title={option.title}
                                       subtitle={option.subtitle}
-                                      hint={option.pricingType === "perGuest"
-                                        ? `$${option.defaultPrice.toLocaleString()} per guest`
-                                        : `$${option.defaultPrice.toLocaleString()} flat`}
+                                      hint={formatPricingHint(option)}
                                     />
                                   ))}
                                 </RadioGroup>
@@ -1143,7 +1144,7 @@ export default function TinyDinerApp() {
                                       value={option.value}
                                       title={option.title}
                                       subtitle={option.subtitle}
-                                      hint={`$${option.defaultPrice.toLocaleString()} ${option.pricingType === "perGuest" ? "per guest" : "flat"}`}
+                                      hint={formatPricingHint(option)}
                                     />
                                   ))}
                                 </RadioGroup>
@@ -1200,7 +1201,7 @@ export default function TinyDinerApp() {
                                       value={option.value}
                                       title={option.title}
                                       subtitle={option.subtitle}
-                                      hint={`$${option.defaultPrice.toLocaleString()} ${option.pricingType === "perGuest" ? "per guest" : "flat"}`}
+                                      hint={formatPricingHint(option)}
                                     />
                                   ))}
                                 </RadioGroup>
@@ -1259,7 +1260,7 @@ export default function TinyDinerApp() {
                                       value={option.value}
                                       title={option.title}
                                       subtitle={option.subtitle}
-                                      hint={`$${option.defaultPrice.toLocaleString()} ${option.pricingType === "perGuest" ? "per guest" : "flat"}`}
+                                      hint={formatPricingHint(option)}
                                     />
                                   ))}
                                 </RadioGroup>
@@ -1316,7 +1317,7 @@ export default function TinyDinerApp() {
                                       value={option.value}
                                       title={option.title}
                                       subtitle={option.subtitle}
-                                      hint={`$${option.defaultPrice.toLocaleString()} ${option.pricingType === "perGuest" ? "per guest" : "flat"}`}
+                                      hint={formatPricingHint(option)}
                                     />
                                   ))}
                                 </RadioGroup>
